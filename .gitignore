@@ -33,3 +33,7 @@ dist/
 build/
 .env.local
 .env.*.local
+
+
+# Obsidian 
+.obsidian/
