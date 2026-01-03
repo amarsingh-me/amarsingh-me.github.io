@@ -6,6 +6,8 @@ showAuthor: false
 showWordCount: false
 showReadingTime: false
 ---
+## Core Concepts
+* [Solid Principle]({{<ref "./blogs/basics/Solid-Principle.md">}})
 ## Changes In
 ### Java
 - [From 11 to 17]({{<ref "./blogs/java/11-to-17.md">}})
