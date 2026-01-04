@@ -37,10 +37,9 @@ public interface Shape {
 public class Square implements Shape {
 
 	public double length;
+	
 	public Square(double length) {
-	
-	this.length = length;
-	
+		this.length = length;
 	}
 
 }
@@ -50,9 +49,7 @@ public class Circle implements Shape {
 	public double radius;
 		
 	public Circle(double radius) {
-	
-	this.radius = radius;
-	
+		this.radius = radius;
 	}
 
 }
@@ -62,24 +59,21 @@ public class AreaCalculator {
 	private final Shape[] shapes;
 		
 	public AreaCalculator(Shape[] shapes) {
+		this.shapes = shapes;
+	}
 	
-	this.shapes = shapes;
-
-}
-
-public double sum() {
-
-	return Arrays.stream(shapes)
-		.mapToDouble(shape -> {
-			if (shape instanceof Circle) {
-				return Math.PI * Math.pow(((Circle) shape).radius, 2);
-			} else if (shape instanceof Square) {
-				return Math.pow(((Square) shape).length, 2);
-			}
-			return 0.0;
-			})
-		.sum();
-}  
+	public double sum() {
+		return Arrays.stream(shapes)
+			.mapToDouble(shape -> {
+				if (shape instanceof Circle) {
+					return Math.PI * Math.pow(((Circle) shape).radius, 2);
+				} else if (shape instanceof Square) {
+					return Math.pow(((Square) shape).length, 2);
+				}
+				return 0.0;
+				})
+			.sum();
+	}  
 
 	public void output() {
 		System.out.println("Sum of areas of shape provided = " + sum());
@@ -114,11 +108,9 @@ public class Circle implements Shape {
 	
 	public Circle(double radius) {
 		this.radius = radius;
-	
 	}
 	
 	@Override
-	
 	public double calculateArea() {
 		return Math.PI * Math.pow(this.radius, 2);
 	}
@@ -180,17 +172,13 @@ public class AreaCalculatorOutputter {
 	public String jsonOutput() {
 	
 		double sum = this.areaCalculator.sum();
-		
 		return String.format("{\"total_area\": \"Total area for the shapes provided is : [%s]\"}", sum);
-	
 	}
 
 	public String htmlOutput() {
 	
 		double sum = this.areaCalculator.sum();
-		
 		return String.format("<div>Total area for the shapes provided is : [%s]</div>", sum);
-	
 	}
 
 }
@@ -210,13 +198,10 @@ public class AreaCalculator {
 		this.shapes = shapes;
 	}
 	
-	  
-	
 	public double sum() {
 	
 		return Arrays.stream(shapes)
 			.mapToDouble(shape -> {
-		
 				if (shape instanceof Circle) {
 					return Math.PI * Math.pow(((Circle) shape).radius, 2);
 				} else if (shape instanceof Square) {
@@ -226,8 +211,6 @@ public class AreaCalculator {
 				})
 				.sum();
 	}
-	
-	  
 	
 	public void output() {
 		System.out.println("Sum of areas of shape provided = " + sum());
@@ -254,9 +237,7 @@ public class AreaCalculator {
 	public AreaCalculator(Shape[] shapes) {
 		this.shapes = shapes;
 	}
-	
-	  
-	
+
 	public double sum() {
 		return Arrays.stream(shapes)
 			.mapToDouble(Shape::calculateArea)
@@ -365,8 +346,6 @@ public class Rectangle implements Shape {
 		return length;
 	}
 	
-	  
-	
 	public void setLength(int length) {
 		this.length = length;
 	}
@@ -458,8 +437,6 @@ public class BasicPrinter implements SmartDevice {
 		throw new UnsupportedOperationException("This operation is not supported in Basic Printer");
 	}
 
-  
-
 	@Override
 	public void fax() {
 		throw new UnsupportedOperationException("This operation is not supported in Basic Printer");
@@ -470,7 +447,6 @@ public class BasicPrinter implements SmartDevice {
   
 
 public class NewAgePrinter implements SmartDevice {
-
 	@Override
 	public void print() {
 		System.out.println("The printer is printing...");
@@ -503,38 +479,27 @@ The Solution:
 Break the interface into smaller, specific contracts like `Printer`, `Scanner`, and `FaxMachine`.
 ```java
 public interface Printer {
-
 	void print();
-
 }
 
 public interface Scanner {
-
 	void scan();
-
 }
 
 public interface FaxMachine {
-
 	void fax();
-
 }
 
   
 
 public class BasicPrinter implements Printer {
-
 	@Override
 	public void print() {
-	
 		System.out.println("The printer is printing...");
-	
 	}
-
 }
 
 public class NewAgePrinter implements Printer, Scanner, FaxMachine{
-
 	@Override
 	public void fax() {
 		System.out.println("Machine is sending fax...");
