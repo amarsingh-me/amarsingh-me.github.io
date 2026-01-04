@@ -7,11 +7,11 @@ showWordCount: false
 showReadingTime: false
 ---
 ## Core Concepts
-* [Solid Principle]({{<ref "./blogs/basics/Solid-Principle.md">}})
+### [Solid Principle]({{<ref "./blogs/basics/Solid-Principle.md">}})
 ## Changes In
 ### Java
-- [From 11 to 17]({{<ref "./blogs/java/11-to-17.md">}})
-- [From 17 to 21]({{<ref "./blogs/java/17-to-21.md">}})
+### [From 11 to 17]({{<ref "./blogs/java/11-to-17.md">}})
+### [From 17 to 21]({{<ref "./blogs/java/17-to-21.md">}})
 <!--
 - [LTS to LTS: A Comprehensive Feature Timeline]({{<ref "./blogs/java/lts-to-lts-timeline.md">}})
 
