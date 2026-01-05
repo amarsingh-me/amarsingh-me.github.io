@@ -9,13 +9,12 @@ showReadingTime: false
 ## Core Concepts
 ### [Solid Principle]({{<ref "./blogs/basics/Solid-Principle.md">}})
 <!--
-### [From 4 to 5]({{<ref "./blogs/spring/4-to-5.md">}})
-
+### [OOPs Concepts]({{<ref "./blogs/spring/4-to-5.md">}})
 -->
 ## Changes In
 ### Java
-### [From 11 to 17]({{<ref "./blogs/java/11-to-17.md">}})
-### [From 17 to 21]({{<ref "./blogs/java/17-to-21.md">}})
+#### [From 11 to 17]({{<ref "./blogs/java/11-to-17.md">}})
+#### [From 17 to 21]({{<ref "./blogs/java/17-to-21.md">}})
 <!--
 - [LTS to LTS: A Comprehensive Feature Timeline]({{<ref "./blogs/java/lts-to-lts-timeline.md">}})
 
