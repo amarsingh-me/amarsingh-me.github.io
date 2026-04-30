@@ -178,3 +178,6 @@ forgejoDefaultServer = "https://v11.next.forgejo.org"
 
 [advertisement]
   # adsense = ""
+
+[params]
+  article.width = "full"

@@ -67,3 +67,5 @@ enableEmoji = true
       name = 'fragmentrefs'
       type = 'fragments'
       weight = 10
+[params]
+  article.width = "full"
