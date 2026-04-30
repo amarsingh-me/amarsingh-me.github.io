@@ -5,9 +5,13 @@ showAuthor: true
 showWordCount: true
 showReadingTime: true
 title: How to choose right collection in Java?
+mermaid: true
 ---
 Choosing the right Java collection can feel overwhelming. The standard library offers dozens of options across maps, sets, lists, and queues, each with different performance characteristics, ordering guarantees, and thread-safety trade-offs. Get it wrong and you are looking at subtle bugs, unexpected memory leaks, or performance bottlenecks under load. To cut through the noise, the decision tree below walks you through every major collection in the JDK, asking the right questions at each step so you always land on the best tool for your specific scenario.
-```mermaid
+
+
+{{< mermaid >}}
+%%{init: {'flowchart': {'useMaxWidth': true}}}%%
 flowchart LR
     START([What do you need to store?])
 
@@ -77,4 +81,4 @@ flowchart LR
     class PQ,ADS,BQ3,BQ2 queue
     class BLK,CHM,COWAL,COWAS conc
     class VEC legacy
-```
+{{< /mermaid >}}
