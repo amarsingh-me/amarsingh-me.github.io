@@ -1,7 +1,15 @@
-.max-w-prose {
-    max-width: 100% !important;
-}
-
-article {
-    max-width: 100% !important;
+/* True-black neutral scale (zinc) instead of the "blowfish" scheme's default
+   blue-tinted (slate) neutrals — keeps its blue primary/secondary accents,
+   but the page chrome itself reads black/gray rather than blue. */
+:root {
+  --color-neutral-50: 250, 250, 250;
+  --color-neutral-100: 244, 244, 245;
+  --color-neutral-200: 228, 228, 231;
+  --color-neutral-300: 212, 212, 216;
+  --color-neutral-400: 161, 161, 170;
+  --color-neutral-500: 113, 113, 122;
+  --color-neutral-600: 82, 82, 91;
+  --color-neutral-700: 63, 63, 70;
+  --color-neutral-800: 39, 39, 42;
+  --color-neutral-900: 24, 24, 27;
 }
