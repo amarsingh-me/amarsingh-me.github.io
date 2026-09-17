@@ -13,6 +13,8 @@ showReadingTime: false
 -->
 ### [How can you choose right collection for your work in Java]({{<ref "./blogs/java/which-collection-use.md">}})
 ### [What Really Happens When You Add @SpringBootApplication?]({{<ref "./blogs/spring/spring-boot-application-annotation.md">}})
+## System Design
+### [Back-of-the-Envelope Estimation]({{<ref "./blogs/system-design/back-of-the-envelope-estimation.md">}})
 ## Changes In
 ### Java
 #### [From 11 to 17]({{<ref "./blogs/java/11-to-17.md">}})
