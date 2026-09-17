@@ -1,0 +1,6 @@
+{{- $n := . -}}
+{{- if eq $n (math.Floor $n) -}}
+{{- printf "%.0f" $n -}}
+{{- else -}}
+{{- printf "%g" $n -}}
+{{- end -}}
