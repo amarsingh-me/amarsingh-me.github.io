@@ -19,9 +19,16 @@
         </div>
       {{ end }}
       {{ range .outputs }}
-        <div class="flex items-center justify-between gap-4">
-          <span class="text-sm text-neutral-600 dark:text-neutral-400">{{ .label }}</span>
-          <span id="calc-{{ $uid }}-{{ .id }}" class="font-semibold text-primary-600 dark:text-primary-400">&ndash;</span>
+        <div class="space-y-0.5">
+          <div class="flex items-center justify-between gap-4">
+            <span class="text-sm text-neutral-600 dark:text-neutral-400">{{ .label }}</span>
+            <span id="calc-{{ $uid }}-{{ .id }}" class="font-semibold text-primary-600 dark:text-primary-400">&ndash;</span>
+          </div>
+          {{ with .formula }}
+            <div class="text-right">
+              <code class="text-xs text-neutral-400 dark:text-neutral-500">{{ . }}</code>
+            </div>
+          {{ end }}
         </div>
       {{ end }}
     </div>
