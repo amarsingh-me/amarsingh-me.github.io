@@ -1,6 +1,6 @@
 # Hugo 
 public/
-resorces/
+resources/_gen/
 .hugo_build.lock
 
 # OS generated files
