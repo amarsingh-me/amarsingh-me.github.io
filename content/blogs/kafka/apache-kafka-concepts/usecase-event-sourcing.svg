@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 420" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5a5a5a"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="800" height="420" fill="#fdfcf9"/>
+  <text x="400" y="34" text-anchor="middle" font-size="20" font-weight="700" fill="#1a1a1a">Event Sourcing — Log as Source of Truth</text>
+
+  <text x="60" y="130" font-size="13" fill="#5a5a5a">Kafka topic (append-only, never overwritten):</text>
+  <g>
+    <rect x="60" y="150" width="100" height="50" rx="6" fill="#f1e6de" stroke="#9a3324" stroke-width="2"/>
+    <text x="110" y="172" text-anchor="middle" font-size="12" fill="#1a1a1a">AccountOpened</text>
+    <text x="110" y="188" text-anchor="middle" font-size="10" fill="#5a5a5a">offset 0</text>
+
+    <rect x="180" y="150" width="100" height="50" rx="6" fill="#f1e6de" stroke="#9a3324" stroke-width="2"/>
+    <text x="230" y="172" text-anchor="middle" font-size="12" fill="#1a1a1a">Deposited $50</text>
+    <text x="230" y="188" text-anchor="middle" font-size="10" fill="#5a5a5a">offset 1</text>
+
+    <rect x="300" y="150" width="100" height="50" rx="6" fill="#f1e6de" stroke="#9a3324" stroke-width="2"/>
+    <text x="350" y="172" text-anchor="middle" font-size="12" fill="#1a1a1a">Withdrew $20</text>
+    <text x="350" y="188" text-anchor="middle" font-size="10" fill="#5a5a5a">offset 2</text>
+
+    <rect x="420" y="150" width="100" height="50" rx="6" fill="#f1e6de" stroke="#9a3324" stroke-width="2"/>
+    <text x="470" y="172" text-anchor="middle" font-size="12" fill="#1a1a1a">Deposited $10</text>
+    <text x="470" y="188" text-anchor="middle" font-size="10" fill="#5a5a5a">offset 3</text>
+
+    <line x1="160" y1="175" x2="176" y2="175" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arrow3)"/>
+    <line x1="280" y1="175" x2="296" y2="175" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arrow3)"/>
+    <line x1="400" y1="175" x2="416" y2="175" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arrow3)"/>
+  </g>
+
+  <path d="M 470 210 C 470 280, 110 280, 110 210" fill="none" stroke="#9a3324" stroke-width="2" stroke-dasharray="5,4" marker-end="url(#arrow3)"/>
+  <text x="290" y="260" text-anchor="middle" font-size="12" fill="#9a3324">replay from offset 0</text>
+
+  <rect x="270" y="300" width="260" height="70" rx="10" fill="#fff" stroke="#9a3324" stroke-width="2.5"/>
+  <text x="400" y="330" text-anchor="middle" font-size="14" font-weight="700" fill="#1a1a1a">Materialized state</text>
+  <text x="400" y="350" text-anchor="middle" font-size="12" fill="#5a5a5a">balance = $40 (rebuilt from events)</text>
+
+  <line x1="290" y1="200" x2="330" y2="296" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arrow3)"/>
+
+  <text x="400" y="400" text-anchor="middle" font-size="12" fill="#5a5a5a">current state is derived — the event log is the only thing that's ever the source of truth</text>
+</svg>
