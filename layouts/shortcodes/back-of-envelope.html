@@ -1,0 +1,83 @@
+{{ $data := .Inner | string | transform.Unmarshal }}
+{{ $uid := partial "functions/uid.html" . }}
+<div id="calc-{{ $uid }}" class="not-prose boe-calculator space-y-4 my-6">
+  {{ range $data.sections }}
+    <div class="rounded-md border border-neutral-200 dark:border-neutral-700 p-4 space-y-3">
+      <h4 class="m-0 font-semibold text-neutral-800 dark:text-neutral">{{ .title }}</h4>
+      {{ range .inputs }}
+        <div class="flex items-center justify-between gap-4">
+          <label for="calc-{{ $uid }}-{{ .id }}" class="text-sm text-neutral-600 dark:text-neutral-400">
+            {{ .label }}{{ with .unit }} ({{ . }}){{ end }}
+          </label>
+          <input
+            type="number"
+            id="calc-{{ $uid }}-{{ .id }}"
+            data-var="{{ .id }}"
+            value="{{ .default }}"
+            {{ with .step }}step="{{ . }}"{{ end }}
+            class="w-40 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-800 dark:text-neutral px-2 py-1 text-right" />
+        </div>
+      {{ end }}
+      {{ range .outputs }}
+        <div class="flex items-center justify-between gap-4">
+          <span class="text-sm text-neutral-600 dark:text-neutral-400">{{ .label }}</span>
+          <span id="calc-{{ $uid }}-{{ .id }}" class="font-semibold text-primary-600 dark:text-primary-400">&ndash;</span>
+        </div>
+      {{ end }}
+    </div>
+  {{ end }}
+</div>
+<script type="application/json" id="calc-{{ $uid }}-config">{{ $data | jsonify | safeJS }}</script>
+<script type="text/javascript">
+  window.addEventListener("DOMContentLoaded", () => {
+    const uid = "{{ $uid }}";
+    const root = document.getElementById("calc-" + uid);
+    const config = JSON.parse(document.getElementById("calc-" + uid + "-config").textContent);
+
+    function formatValue(n, format) {
+      if (typeof n !== "number" || !isFinite(n)) return "–";
+      if (format === "bytes") {
+        const units = ["B", "KB", "MB", "GB", "TB", "PB"];
+        let i = 0;
+        while (Math.abs(n) >= 1024 && i < units.length - 1) {
+          n /= 1024;
+          i++;
+        }
+        return n.toFixed(2) + " " + units[i];
+      }
+      if (format === "compact") {
+        return new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 }).format(n);
+      }
+      return Number(n.toFixed(2)).toLocaleString();
+    }
+
+    function recalc() {
+      const scope = {};
+
+      config.sections.forEach((section) => {
+        (section.inputs || []).forEach((input) => {
+          const el = document.getElementById("calc-" + uid + "-" + input.id);
+          const value = parseFloat(el.value);
+          scope[input.id] = isNaN(value) ? 0 : value;
+        });
+      });
+
+      config.sections.forEach((section) => {
+        (section.outputs || []).forEach((output) => {
+          let result;
+          try {
+            result = new Function(...Object.keys(scope), "return (" + output.formula + ")")(...Object.values(scope));
+          } catch (e) {
+            result = NaN;
+          }
+          scope[output.id] = result;
+          const el = document.getElementById("calc-" + uid + "-" + output.id);
+          if (el) el.textContent = formatValue(result, output.format);
+        });
+      });
+    }
+
+    root.addEventListener("input", recalc);
+    recalc();
+  });
+</script>

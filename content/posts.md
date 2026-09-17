@@ -12,6 +12,8 @@ showReadingTime: false
 ### [OOPs Concepts]({{<ref "./blogs/spring/4-to-5.md">}})
 -->
 ### [How can you choose right collection for your work in Java]({{<ref "./blogs/java/which-collection-use.md">}})
+## System Design
+### [Back-of-the-Envelope Estimation]({{<ref "./blogs/system-design/back-of-the-envelope-estimation.md">}})
 ## Changes In
 ### Java
 #### [From 11 to 17]({{<ref "./blogs/java/11-to-17.md">}})
