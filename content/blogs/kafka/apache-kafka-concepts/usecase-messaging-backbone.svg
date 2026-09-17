@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 420" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5a5a5a"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="800" height="420" fill="#fdfcf9"/>
+  <text x="400" y="34" text-anchor="middle" font-size="20" font-weight="700" fill="#1a1a1a">Messaging Backbone — Decoupled Pub-Sub</text>
+
+  <!-- producer -->
+  <rect x="30" y="170" width="150" height="60" rx="8" fill="#f1e6de" stroke="#9a3324" stroke-width="2"/>
+  <text x="105" y="205" text-anchor="middle" font-size="15" fill="#1a1a1a">order-service</text>
+  <text x="105" y="255" text-anchor="middle" font-size="12" fill="#5a5a5a">producer</text>
+
+  <!-- kafka topic -->
+  <rect x="300" y="140" width="200" height="120" rx="10" fill="#fff" stroke="#9a3324" stroke-width="2.5"/>
+  <text x="400" y="168" text-anchor="middle" font-size="15" font-weight="700" fill="#9a3324">Kafka topic</text>
+  <text x="400" y="190" text-anchor="middle" font-size="12" fill="#5a5a5a">orders</text>
+  <line x1="320" y1="205" x2="480" y2="205" stroke="#d8d3c8" stroke-width="2"/>
+  <line x1="320" y1="222" x2="480" y2="222" stroke="#d8d3c8" stroke-width="2"/>
+  <line x1="320" y1="239" x2="480" y2="239" stroke="#d8d3c8" stroke-width="2"/>
+
+  <!-- consumers -->
+  <rect x="620" y="40" width="150" height="55" rx="8" fill="#f1e6de" stroke="#9a3324" stroke-width="2"/>
+  <text x="695" y="72" text-anchor="middle" font-size="14" fill="#1a1a1a">email-service</text>
+
+  <rect x="620" y="152" width="150" height="55" rx="8" fill="#f1e6de" stroke="#9a3324" stroke-width="2"/>
+  <text x="695" y="184" text-anchor="middle" font-size="14" fill="#1a1a1a">fraud-detection</text>
+
+  <rect x="620" y="264" width="150" height="55" rx="8" fill="#f1e6de" stroke="#9a3324" stroke-width="2"/>
+  <text x="695" y="296" text-anchor="middle" font-size="14" fill="#1a1a1a">analytics</text>
+
+  <rect x="620" y="330" width="150" height="55" rx="8" fill="#f6f1e7" stroke="#d8d3c8" stroke-width="2" stroke-dasharray="4,3"/>
+  <text x="695" y="358" text-anchor="middle" font-size="13" fill="#5a5a5a">new-consumer</text>
+  <text x="695" y="374" text-anchor="middle" font-size="10" fill="#5a5a5a">(added later, no</text>
+  <text x="695" y="386" text-anchor="middle" font-size="10" fill="#5a5a5a">producer change)</text>
+
+  <!-- arrows -->
+  <line x1="180" y1="200" x2="296" y2="200" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arrow1)"/>
+  <line x1="500" y1="200" x2="616" y2="68" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arrow1)"/>
+  <line x1="500" y1="200" x2="616" y2="180" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arrow1)"/>
+  <line x1="500" y1="200" x2="616" y2="292" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arrow1)"/>
+  <line x1="500" y1="200" x2="616" y2="357" stroke="#5a5a5a" stroke-width="2" stroke-dasharray="4,3" marker-end="url(#arrow1)"/>
+
+  <text x="400" y="400" text-anchor="middle" font-size="12" fill="#5a5a5a">producer and consumers never know about each other — only the topic connects them</text>
+</svg>

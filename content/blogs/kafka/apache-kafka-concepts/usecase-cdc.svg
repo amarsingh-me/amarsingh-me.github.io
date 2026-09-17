@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 420" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5a5a5a"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="800" height="420" fill="#fdfcf9"/>
+  <text x="400" y="34" text-anchor="middle" font-size="20" font-weight="700" fill="#1a1a1a">Change Data Capture (CDC)</text>
+
+  <!-- db cylinder -->
+  <g>
+    <ellipse cx="100" cy="160" rx="60" ry="16" fill="#f1e6de" stroke="#9a3324" stroke-width="2"/>
+    <rect x="40" y="160" width="120" height="60" fill="#f1e6de" stroke="#9a3324" stroke-width="2"/>
+    <ellipse cx="100" cy="220" rx="60" ry="16" fill="#f1e6de" stroke="#9a3324" stroke-width="2"/>
+    <line x1="40" y1="160" x2="40" y2="220" stroke="#9a3324" stroke-width="2"/>
+    <line x1="160" y1="160" x2="160" y2="220" stroke="#9a3324" stroke-width="2"/>
+  </g>
+  <text x="100" y="255" text-anchor="middle" font-size="13" fill="#1a1a1a">Source database</text>
+  <text x="100" y="270" text-anchor="middle" font-size="10" fill="#5a5a5a">(write-ahead log)</text>
+
+  <!-- connector -->
+  <rect x="230" y="165" width="140" height="55" rx="8" fill="#f6f1e7" stroke="#9a3324" stroke-width="2"/>
+  <text x="300" y="188" text-anchor="middle" font-size="13" fill="#1a1a1a">CDC connector</text>
+  <text x="300" y="204" text-anchor="middle" font-size="10" fill="#5a5a5a">(Debezium via Connect)</text>
+
+  <!-- kafka topic -->
+  <rect x="430" y="155" width="150" height="75" rx="10" fill="#fff" stroke="#9a3324" stroke-width="2.5"/>
+  <text x="505" y="180" text-anchor="middle" font-size="14" font-weight="700" fill="#9a3324">Kafka</text>
+  <text x="505" y="198" text-anchor="middle" font-size="11" fill="#5a5a5a">topic: db.changes</text>
+  <line x1="445" y1="210" x2="565" y2="210" stroke="#d8d3c8" stroke-width="2"/>
+
+  <!-- downstream -->
+  <rect x="640" y="70" width="140" height="50" rx="7" fill="#f1e6de" stroke="#9a3324" stroke-width="2"/>
+  <text x="710" y="100" text-anchor="middle" font-size="13" fill="#1a1a1a">Search index</text>
+
+  <rect x="640" y="167" width="140" height="50" rx="7" fill="#f1e6de" stroke="#9a3324" stroke-width="2"/>
+  <text x="710" y="197" text-anchor="middle" font-size="13" fill="#1a1a1a">Cache</text>
+
+  <rect x="640" y="264" width="140" height="50" rx="7" fill="#f1e6de" stroke="#9a3324" stroke-width="2"/>
+  <text x="710" y="294" text-anchor="middle" font-size="13" fill="#1a1a1a">Data warehouse</text>
+
+  <!-- arrows -->
+  <line x1="160" y1="190" x2="226" y2="190" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arrow4)"/>
+  <line x1="370" y1="192" x2="426" y2="192" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arrow4)"/>
+  <line x1="580" y1="192" x2="636" y2="95" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arrow4)"/>
+  <line x1="580" y1="192" x2="636" y2="192" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arrow4)"/>
+  <line x1="580" y1="192" x2="636" y2="289" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arrow4)"/>
+
+  <text x="400" y="380" text-anchor="middle" font-size="12" fill="#5a5a5a">no application code publishes anything — the connector tails the DB log directly</text>
+</svg>
