@@ -13,8 +13,8 @@
             type="number"
             id="calc-{{ $uid }}-{{ .id }}"
             data-var="{{ .id }}"
-            value="{{ .default }}"
-            {{ with .step }}step="{{ . }}"{{ end }}
+            value="{{ partial "functions/plain-number.html" .default }}"
+            {{ with .step }}step="{{ partial "functions/plain-number.html" . }}"{{ end }}
             class="w-40 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-800 dark:text-neutral px-2 py-1 text-right" />
         </div>
       {{ end }}
