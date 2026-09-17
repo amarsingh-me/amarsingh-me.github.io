@@ -17,7 +17,7 @@ title = "Amar Singh"
 [params.author]
   name = "Amar Singh"
   email = "amarsingh@outlook.in"
-  image = "https://avatars.githubusercontent.com/u/8961681?v=4"
+  image = "img/author.jpg"
   imageQuality = 96
   headline = "I'm only human"
   bio = "A little bit about you"
