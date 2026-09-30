@@ -1,5 +1,6 @@
 ---
 draft: true
+title: Object-Oriented Design Guidelines
 ---
 
-1. [[Solid-Principle]]
+1. [SOLID Principles](solid-principle.md)

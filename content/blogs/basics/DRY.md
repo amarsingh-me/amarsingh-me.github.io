@@ -1,3 +1,6 @@
+---
+draft: true
+title: DRY
+---
 
-
-[[Object Oriented Design Guidelines]]
+[Object-Oriented Design Guidelines](object-oriented-design-guidelines.md)

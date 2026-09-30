@@ -1,6 +1,7 @@
 ---
 draft: true
+title: GRASP
 ---
 
 
-[[Object Oriented Design Guidelines]]
+[Object-Oriented Design Guidelines](object-oriented-design-guidelines.md)

@@ -1,0 +1,19 @@
+{{- /*
+  Builds a map of RelPermalink -> []Page for every page that links to it via
+  a relative ../note.md style link, mirroring Obsidian's backlinks index.
+  Wrapped in partialCached (see backlinks.html) so this O(n) scan over every
+  page's raw content runs once per build, not once per page rendered.
+*/ -}}
+{{- $graph := dict -}}
+{{- range where site.RegularPages "Section" "blogs" -}}
+  {{- $source := . -}}
+  {{- range findRE `\]\([^)]+\.md\)` .RawContent -}}
+    {{- $target := . | strings.TrimPrefix "](" | strings.TrimSuffix ")" -}}
+    {{- with $source.GetPage $target -}}
+      {{- $key := .RelPermalink -}}
+      {{- $existing := index $graph $key -}}
+      {{- $graph = merge $graph (dict $key ($existing | append $source)) -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- return $graph -}}
