@@ -27,4 +27,4 @@ This means user will only know "What it does" rather than "how it is done".
 
 
 #Object_Oriented_Design_guidelines
-[[Object Oriented Design Guidelines]]
+[Object-Oriented Design Guidelines](object-oriented-design-guidelines.md)

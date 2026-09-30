@@ -1,0 +1,27 @@
+{{- /*
+  Resolves Obsidian-vault-style relative links (e.g. [Text](../folder/note.md))
+  to the note's real published URL, so the same link works both in Obsidian
+  and on the built site. Anything else (http/https/mailto/anchors/absolute
+  Hugo paths) falls through to the theme's default link rendering.
+*/ -}}
+{{- $dest := .Destination -}}
+{{- $isNoteLink := and (strings.HasSuffix $dest ".md") (not (strings.HasPrefix $dest "http://")) (not (strings.HasPrefix $dest "https://")) -}}
+{{- if $isNoteLink -}}
+  {{- with .Page.GetPage $dest -}}
+    <a href="{{ .RelPermalink }}"{{ with $.Title }} title="{{ . }}"{{ end }}>{{- $.Text | safeHTML -}}</a>
+  {{- else -}}
+    <span class="border-b border-dashed border-neutral-400 text-neutral-500 dark:border-neutral-500 dark:text-neutral-400" title="Note not written yet: {{ $dest }}">{{- $.Text | safeHTML -}}</span>
+  {{- end -}}
+{{- else -}}
+  <a
+    href="{{ $dest | safeURL }}"
+    {{- with .Title -}}
+      title="{{ . }}"
+    {{- end }}
+    {{- if or (strings.HasPrefix $dest "http:") (strings.HasPrefix $dest "https:") }}
+      target="_blank"
+    {{ end }}>
+    {{- .Text | safeHTML -}}
+  </a>
+{{- end -}}
+{{- /* Trim EOF */ -}}

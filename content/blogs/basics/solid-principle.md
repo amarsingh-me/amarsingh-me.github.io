@@ -6,10 +6,11 @@ showDate: false
 showWordCount: true
 showReadingTime: true
 date: 2026-01-02
+title: SOLID Principles in Object-Oriented Design
 ---
 # SOLID Principles in Object-Oriented Design
 ---
-**SOLID** is an acronym for five core principles of [[Object Oriented Design]] popularized by Robert C. Martin (Uncle Bob). These principles act as a roadmap for developers to create software that is easy to maintain, scale, and understand over time.
+**SOLID** is an acronym for five core principles of [Object-Oriented Design](object-oriented-design-guidelines.md) popularized by Robert C. Martin (Uncle Bob). These principles act as a roadmap for developers to create software that is easy to maintain, scale, and understand over time.
 
 | Acronym | Full Form                      | Key Concept                                                              |     |
 | :------ | :----------------------------- | :----------------------------------------------------------------------- | --- |
