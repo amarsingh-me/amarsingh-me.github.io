@@ -1,0 +1,23 @@
+{
+  "skill_name": "humanize-writing",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Can you make this LinkedIn post sound less like ChatGPT wrote it? \"In today's fast-paced tech landscape, I'm thrilled to share that our team has embarked on a transformative journey. It's not just a migration, it's a revolution. We leveraged Kafka and Spring WebFlux, seamlessly cutting latency by 80%, showcasing the power of reactive design. Here's the thing: great engineering is a testament to great people. Let that sink in.\"",
+      "expected_output": "A rewrite with the same facts (Kafka, Spring WebFlux, 80% latency cut), no banned vocabulary, no 'not X, it's Y', no ta-da lines, varied sentence length, and no hashtag/emoji padding. ai_detect.py score of 30 or below.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "write a short email to my manager Priya saying i'll miss thursday's sprint review because of a dentist appointment, and that i've put my demo notes in the confluence page so Wei can present them",
+      "expected_output": "A short plain-text email with contractions, no Markdown, no 'I hope this email finds you well', no 'Let me know if you have any questions' closer, no em dashes.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I need a 3-sentence bio for a conference speaker page. I'm a tech lead at Zenika in Singapore, 10 years in backend (Java, Spring, Kafka), previously at OCBC and DBS, and I mentor 10+ engineers. Talk title: 'Moving a bank batch system to reactive streams'.",
+      "expected_output": "Three sentences, only the facts given, no 'passionate', 'seasoned', 'journey', or legacy talk, varied sentence length, third person.",
+      "files": []
+    }
+  ]
+}
