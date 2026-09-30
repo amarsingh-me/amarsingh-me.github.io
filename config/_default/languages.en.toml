@@ -16,13 +16,13 @@ title = "Amar Singh"
 
 [params.author]
   name = "Amar Singh"
-  email = "amarsingh@outlook.in"
+  email = "contact@amarsrathore.com"
   image = "img/author.jpg"
   imageQuality = 96
   headline = "I'm only human"
   bio = "A little bit about you"
   links = [
-     { email = "mailto:amarsingh@outlook.in" },
+     { email = "mailto:contact@amarsrathore.com" },
 #     { link = "https://link-to-some-website.com/" },
 #     { amazon = "https://www.amazon.com/hz/wishlist/ls/wishlist-id" },
 #     { apple = "https://www.apple.com" },
@@ -45,7 +45,7 @@ title = "Amar Singh"
 #     { keyoxide = "https://keyoxide.org/URI" },
 #     { kickstarter = "https://www.kickstarter.com/profile/username" },
 #     { lastfm = "https://lastfm.com/user/username" },
-     { linkedin = "https://linkedin.com/in/amarsinghrathore" },
+     { linkedin = "https://www.linkedin.com/in/amarsrathore/" },
 #     { mastodon = "https://mastodon.instance/@username" },
 #     { matrix = "https://matrix.to/#/URI" },
 #     { medium = "https://medium.com/username" },
