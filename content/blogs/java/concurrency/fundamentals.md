@@ -38,17 +38,33 @@ stateDiagram-v2
 
 ## Creating threads
 
+There are two ways to create a thread: implement `Runnable` and pass it to a `Thread`, or extend `Thread` and override `run()`.
+
+```java
+class Task implements Runnable {
+    public void run() { /* work */ }
+}
+new Thread(new Task()).start();
+
+class WorkerThread extends Thread {
+    public void run() { /* work */ }
+}
+new WorkerThread().start();
+```
+
+Stick with `Runnable`. Java only allows single inheritance, so extending `Thread` burns your one superclass slot, and a `Runnable` can also be handed straight to an `ExecutorService` instead of wrapped in a `Thread`.
+
 `Runnable` returns nothing and can't throw checked exceptions. `Callable<V>` returns a value and can throw. `Thread` takes only a `Runnable`, so a `Callable` goes through an `ExecutorService` or a `FutureTask`. In real code you submit tasks to an executor and rarely call `new Thread()` yourself.
 
 `t.run()` executes the task on the current thread like any method call. Only `t.start()` creates a new thread, and calling it twice throws `IllegalThreadStateException`.
 
 ## Context switching
 
-To switch threads, the OS saves one thread's registers and loads another's. That part takes microseconds. The larger cost comes after: the new thread starts with cold CPU caches and TLB entries. This is why one platform thread per request stops scaling at a few thousand threads, and why thread pools and [virtual threads](../websockets-threading-virtual-threads.md) exist.
+A context switch is nothing exotic: the OS pauses one thread and resumes another on the same core. That's how more threads can run than there are cores. To switch threads, the OS saves one thread's registers and loads another's. That part takes microseconds. The larger cost comes after: the new thread starts with cold CPU caches and TLB entries. This is why one platform thread per request stops scaling at a few thousand threads, and why thread pools and [virtual threads](../websockets-threading-virtual-threads.md) exist.
 
 ## Daemon vs user threads
 
-The JVM exits once only daemon threads remain, and it stops them mid-instruction. They get no `InterruptedException` and their `finally` blocks never run, so a daemon thread that flushes a buffer in `finally` loses that data. Call `setDaemon(true)` before `start()`. New threads inherit daemon status from the thread that created them.
+Threads come in two kinds, user and daemon, and a new thread inherits whichever kind created it. User threads keep the JVM alive. Daemon threads don't, so once only daemon threads are left, the JVM exits and kills them mid-instruction. They get no `InterruptedException` and their `finally` blocks never run, so a daemon thread that flushes a buffer in `finally` loses that data. Call `setDaemon(true)` before `start()` to mark one.
 
 The reverse bug shows up more often. Threads from `Executors.newFixedThreadPool` are user threads, so if you forget `shutdown()`, `main()` returns and the JVM keeps running.
 
