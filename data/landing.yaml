@@ -1,0 +1,27 @@
+# Copy for the custom homepage (layouts/partials/home/custom.html).
+# Facts come from the resume profile; keep them in sync when it changes.
+
+eyebrow: "Tech Lead · Backend Engineer · Singapore"
+
+bio: >-
+  I build and run high-throughput distributed systems. These days I lead a
+  backend team that owns a platform handling 10B+ transactions a day at
+  99.99% availability, and this blog is where I write down what I learn.
+
+cta:
+  primary:
+    label: "Read the blog"
+    url: "/posts/"
+  secondary:
+    label: "LinkedIn"
+    url: "https://www.linkedin.com/in/amarsrathore/"
+
+stats:
+  - value: "12+"
+    label: "years building backend systems"
+  - value: "10B+"
+    label: "transactions a day on the platform I own"
+  - value: "99.99%"
+    label: "availability target we run at"
+  - value: "80%"
+    label: "latency cut by our WebFlux + Kafka rewrite"

@@ -1,0 +1,58 @@
+{{/* Custom homepage: hero + impact stats + the theme's recent articles.
+     Copy lives in data/landing.yaml; styles are the lp-* rules in assets/css/custom.css. */}}
+{{ $landing := .Site.Data.landing }}
+{{ $disableImageOptimization := .Site.Params.disableImageOptimization | default false }}
+
+<section class="lp-hero">
+  {{ with .Site.Params.Author.image }}
+    {{ $authorImage := resources.Get . }}
+    {{ if $authorImage }}
+      {{ $final := $authorImage }}
+      {{ if not $disableImageOptimization }}
+        {{ $final = $authorImage.Fill (print "288x288 q" ($.Site.Params.Author.imagequality | default "96")) }}
+      {{ end }}
+      <div class="lp-avatar">
+        <img
+          src="{{ $final.RelPermalink }}"
+          width="176"
+          height="176"
+          alt="{{ $.Site.Params.Author.name | default `Author` }}">
+      </div>
+    {{ end }}
+  {{ end }}
+
+  <div class="lp-intro">
+    {{ with $landing.eyebrow }}<p class="lp-eyebrow">{{ . }}</p>{{ end }}
+    <h1 class="lp-name">{{ .Site.Params.Author.name | default .Site.Title }}</h1>
+    {{ with $landing.bio }}<p class="lp-bio">{{ . }}</p>{{ end }}
+
+    <div class="lp-cta">
+      {{ with $landing.cta.primary }}
+        <a class="lp-btn" href="{{ .url | relLangURL }}">{{ .label }}</a>
+      {{ end }}
+      {{ with $landing.cta.secondary }}
+        <a class="lp-btn lp-btn--ghost" href="{{ .url }}" target="_blank" rel="me noopener noreferrer">{{ .label }}</a>
+      {{ end }}
+      <div class="lp-links">{{ partialCached "author-links.html" . }}</div>
+    </div>
+  </div>
+</section>
+
+{{ with $landing.stats }}
+  <section class="lp-stats" aria-label="Highlights">
+    {{ range . }}
+      <div class="lp-stat">
+        <span class="lp-stat__value">{{ .value }}</span>
+        <span class="lp-stat__label">{{ .label }}</span>
+      </div>
+    {{ end }}
+  </section>
+{{ end }}
+
+{{ with .Content }}
+  <section class="prose dark:prose-invert w-full">{{ . }}</section>
+{{ end }}
+
+<section>
+  {{ partial "recent-articles/main.html" . }}
+</section>
