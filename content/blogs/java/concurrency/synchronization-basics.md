@@ -11,13 +11,48 @@ tags: [java, concurrency, threading]
 categories: [Java]
 ---
 
-A race condition happens when the result depends on how threads interleave. Two shapes cover most of them: read-modify-write (`count++`) and check-then-act (`if (!map.containsKey(k)) map.put(k, v)`). `synchronized` fixes both by giving **mutual exclusion and visibility** on one object's monitor. `volatile` gives visibility and ordering but no atomicity, so `volatile int count; count++` still races. For each piece of shared state, one lock should guard it everywhere, and calling a thread-safe class twice in a row still leaves a race between the two calls.
+Threads share the heap, so any field that more than one thread reads and writes needs atomicity, visibility and ordering. A race condition happens when the result depends on how threads interleave. Two shapes cover most of them: read-modify-write (`count++`) and check-then-act (`if (!map.containsKey(k)) map.put(k, v)`). `synchronized` fixes both by giving **mutual exclusion and visibility** on one object's monitor. `volatile` gives visibility and ordering but no atomicity, so `volatile int count; count++` still races. Guard each piece of shared state with one lock everywhere, and remember that calling a thread-safe class twice in a row still leaves a race between the two calls.
 
 Part of the [Java Concurrency Roadmap](java-concurrency.md). Builds on [Fundamentals](fundamentals.md).
 
+## The core idea: shared mutable state
+
+Threads in one process share the heap: instance fields, static fields, and every object reachable from them. Each thread gets its own stack, so local variables and parameters belong to that thread alone ([Fundamentals](fundamentals.md) covers the layout).
+
+```java
+class Hits {
+    private int total;          // heap: every thread calling record() hits this one field
+
+    void record(int n) {
+        int doubled = n * 2;    // this thread's stack: nobody else can touch it
+        total += doubled;       // shared and mutable, so it needs protection
+    }
+}
+```
+
+Trouble needs both conditions. State that's shared but never changes is safe, and so is state that changes but never leaves one thread. Code that reads or writes shared mutable state is a **critical section**. It has to run without another thread getting in halfway through.
+
+For that state, concurrent code needs three guarantees:
+
+| Guarantee | Meaning | Breaks when |
+|---|---|---|
+| Atomicity | A multi-step action happens all at once or not at all | `count++` is read, add, write, and another thread gets in between |
+| Visibility | A write by one thread is seen by the others | A thread keeps looping on a stale `running` flag |
+| Ordering | Other threads see writes in the order the code made them | The JIT or CPU reorders two writes, and a reader sees the second without the first |
+
+`synchronized` gives all three. It gets atomicity through **mutual exclusion**: only one thread can be inside the critical section at a time. `volatile` gives visibility and ordering but not atomicity. `AtomicInteger` and its siblings give atomicity for a single variable. The ordering rules live in [the Java Memory Model](java-memory-model.md).
+
+Two terms get mixed up. A **race condition** is a logic bug where the result depends on timing. A **data race** is narrower and defined by the JMM: two threads access the same field, at least one of them writes, and no happens-before edge orders the accesses. Data races usually cause race conditions, but a race condition can exist with no data race at all. Each call to a `ConcurrentHashMap` is properly synchronized, yet a check-then-act across two calls can still go wrong (see the last section).
+
+Shared mutable state can be made safe by removing either half, or by guarding it:
+
+- Don't share it. Keep it in locals, or confine it to one thread with `ThreadLocal`.
+- Don't mutate it. Immutable objects need no locking ([Advanced topics](advanced.md)).
+- Synchronize access. That's what the rest of this note is about.
+
 ## Why one core is enough for a race
 
-`count++` compiles to three steps: read, add, write. The scheduler can preempt a thread between any two of them.
+`count++` isn't atomic. It compiles to three steps: read, add, write. The scheduler can preempt a thread between any two of them.
 
 | Step | Thread A | Thread B | `count` |
 |---|---|---|---|

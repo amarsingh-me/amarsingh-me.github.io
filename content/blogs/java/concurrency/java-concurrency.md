@@ -18,7 +18,7 @@ This page is the map. Each line links to a short note with the details.
 ## Foundations
 
 1. [Fundamentals](fundamentals.md): process vs thread, thread states, `start()` vs `run()`, context switching, daemon threads, priorities.
-2. [Synchronization basics](synchronization-basics.md): race conditions, `synchronized` and monitors, `volatile`, what is and isn't atomic.
+2. [Synchronization basics](synchronization-basics.md): shared state and critical sections, race conditions, `synchronized` and monitors, `volatile`, what is and isn't atomic.
 3. [Thread communication](thread-communication.md): `wait`/`notifyAll`, `join`/`sleep`, interrupts and cancellation.
 4. [Concurrency problems](concurrency-problems.md): deadlock, livelock, starvation, priority inversion, what "thread-safe" means.
 5. [Java Memory Model](java-memory-model.md): visibility, happens-before, instruction reordering, CPU caches and barriers.
