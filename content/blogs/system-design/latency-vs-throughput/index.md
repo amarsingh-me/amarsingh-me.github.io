@@ -12,7 +12,14 @@ categories: [System Design]
 mermaid: true
 ---
 
-Latency is how long one request takes. Throughput is how many requests you finish per second. There are two kinds of latency: network latency is the one-way trip from A to B, and request latency is the full round trip plus server processing time. Request latency is what users feel, and it's the meaning used in this series. The two numbers move independently until the system gets busy. Near max throughput, requests start waiting in queues and latency climbs fast: at 50% utilization a request spends about twice its service time in the system, and at 90% it spends about ten times. Batching and more servers raise throughput. Caching cuts latency. Neither fixes the other, and the way to see trouble coming is to watch p99 and keep headroom, not to watch the average.
+Latency is how long one request takes. Throughput is how many requests you finish per second. Latency comes in two kinds:
+
+- **Network latency**: the time data takes to travel one way, from point A to point B.
+- **Request latency**: the full round trip (there and back) plus the time the server spends processing the request.
+
+In practice, network latency is only part of the wait. It's the travel time, and you can't do much about it beyond moving servers closer to users. Request latency adds the trip back and everything your server does in between, including time a request spends waiting in a queue. That total is what users feel, so when this series says "latency" it means request latency.
+
+Latency and throughput move independently until the system gets busy. Near max throughput, requests start waiting in queues and latency climbs fast: at 50% utilization a request spends about twice its service time in the system, and at 90% it spends about ten times. Batching and more servers raise throughput. Caching cuts latency. Neither fixes the other, and the way to see trouble coming is to watch p99 and keep headroom, not to watch the average.
 
 ## Two kinds of latency
 
