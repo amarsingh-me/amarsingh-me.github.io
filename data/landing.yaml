@@ -3,10 +3,7 @@
 
 eyebrow: "Tech Lead · Backend Engineer · Singapore"
 
-bio: >-
-  I build and run high-throughput distributed systems. These days I lead a
-  backend team that owns a platform handling 10B+ transactions a day at
-  99.99% availability, and this blog is where I write down what I learn.
+bio: "I build stuff"
 
 cta:
   primary:
