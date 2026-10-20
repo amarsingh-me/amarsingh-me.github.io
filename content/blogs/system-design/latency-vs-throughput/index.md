@@ -12,22 +12,15 @@ categories: [System Design]
 mermaid: true
 ---
 
-Latency is how long one request takes. Throughput is how many requests you finish per second. Latency comes in two kinds:
+Latency is how long one request takes. Throughput is how many requests you finish per second.
 
-- **Network latency**: the time data takes to travel one way, from point A to point B.
-- **Request latency**: the full round trip (there and back) plus the time the server spends processing the request.
-
-In practice, network latency is only part of the wait. It's the travel time, and you can't do much about it beyond moving servers closer to users. Request latency adds the trip back and everything your server does in between, including time a request spends waiting in a queue. That total is what users feel, so when this series says "latency" it means request latency.
-
-Latency and throughput move independently until the system gets busy. Near max throughput, requests start waiting in queues and latency climbs fast: at 50% utilization a request spends about twice its service time in the system, and at 90% it spends about ten times. Batching and more servers raise throughput. Caching cuts latency. Neither fixes the other, and the way to see trouble coming is to watch p99 and keep headroom, not to watch the average.
-
-## Two kinds of latency
+## Kinds of latency
 
 Take the highway picture from the LinkedIn post. Latency is how long one car takes to get from A to B. For request latency it's the drive there, the stop, and the drive back.
 
-**Network latency** has a hard floor set by physics. Light in fiber covers roughly 200 km per millisecond, so New York to London (about 5,600 km) costs at least 28 ms one way before any router, TLS handshake or retransmit gets involved. No code change makes that shorter. You can only move the server closer to the user.
+**Network latency** : the time data takes to travel from point A to point B. Network Latency has a hard floor set by physics. Light in fiber covers roughly 200 km per millisecond, so New York to London (about 5,600 km) costs at least 28 ms one way before any router, TLS handshake or retransmit gets involved. No code change makes that shorter. You can only move the server closer to the user.
 
-**Request latency** is everything the user waits for: the trip out, the time your server spends on the request, and the trip back. Server time is the part you control, and it includes waiting. Time spent sitting in a thread pool queue or a connection pool counts the same as time spent doing work.
+**Request latency**: Request latency adds the trip back and everything your server does in between, including time a request spends waiting in a queue. Request Latency is everything the user waits for: the trip out, the time your server spends on the request, and the trip back. Server time is the part you control, and it includes waiting. Time spent sitting in a thread pool queue or a connection pool counts the same as time spent doing work.
 
 {{< moving-diagram >}}
 {
@@ -100,7 +93,19 @@ That's why a server can have 120 ms latency and still do far more than 8 request
 }
 {{< /moving-diagram >}}
 
-One law ties the two together. **Little's Law** says the average number of requests in the system equals arrival rate times average time in the system: L = λ × W. At 500 requests per second and 200 ms each, you have 100 requests in flight on average. If your service has 50 worker threads, that math says you're already queueing. It's a quick sanity check for any pool size.
+Latency and throughput move independently until the system gets busy. Near max throughput, requests start waiting in queues and latency climbs fast: at 50% utilization a request spends about twice its service time in the system, and at 90% it spends about ten times. Batching and more servers raise throughput. Caching cuts latency. Neither fixes the other, and the way to see trouble coming is to watch p99 and keep headroom, not to watch the average.
+
+One law ties the two together. **Little's Law**:
+
+```
+L = λ × W
+```
+
+- **L**: the average number of requests in the system at once, counting both the ones waiting in a queue and the ones being worked on.
+- **λ** (lambda): the arrival rate, meaning how many requests come in per second. When the system keeps up, this is your throughput.
+- **W**: the average time one request spends in the system, from arrival to response. That's your latency.
+
+Put plainly, requests in flight equal throughput times latency. At 500 requests per second and 200 ms each, you have 100 requests in flight on average. If your service has 50 worker threads, that math says you're already queueing. It's a quick sanity check for any pool size.
 
 ## Why latency spikes near capacity
 
