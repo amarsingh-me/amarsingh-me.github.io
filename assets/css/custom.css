@@ -158,7 +158,7 @@
 
 .lp-stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
   margin: 0.5rem 0 2rem;
 }
@@ -189,6 +189,11 @@
   font-weight: 800;
   line-height: 1;
   color: rgb(var(--color-primary-600));
+}
+
+/* Word values ("Community Builder") get a smaller size so they fit on one line. */
+.lp-stat__value--text {
+  font-size: 1.5rem;
 }
 
 .dark .lp-stat__value {
@@ -233,6 +238,11 @@
 
   .lp-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* An odd last card spans the full row instead of sitting alone. */
+  .lp-stat:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
   }
 }
 
