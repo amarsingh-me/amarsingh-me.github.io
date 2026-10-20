@@ -42,7 +42,7 @@
   <section class="lp-stats" aria-label="Highlights">
     {{ range . }}
       <div class="lp-stat">
-        <span class="lp-stat__value">{{ .value }}</span>
+        <span class="lp-stat__value{{ if gt (len .value) 6 }} lp-stat__value--text{{ end }}">{{ .value }}</span>
         <span class="lp-stat__label">{{ .label }}</span>
       </div>
     {{ end }}
