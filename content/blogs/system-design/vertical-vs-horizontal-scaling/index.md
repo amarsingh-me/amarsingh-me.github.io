@@ -12,18 +12,20 @@ categories: [System Design]
 mermaid: true
 ---
 
+Before getting into how scaling is done, it helps to pin down what the word means. For a system, scaling means growing its capacity so it can handle more users and more requests, without the cost or the response time growing just as fast.
+
 When traffic outgrows one server, you have two ways out:
 
 - **Vertical scaling (scale up)**: give the same machine more CPU, more RAM and a faster disk. No code changes.
 - **Horizontal scaling (scale out)**: add more machines and put a load balancer in front. Capacity grows roughly with the number of machines, and losing one is survivable.
 
-What that means in practice: vertical scaling is the fast, cheap fix, but every machine has a top size and it's still one machine, so when it dies you're down. Horizontal scaling has no top size and survives failures, but it only works for stateless servers. A session held in one server's memory breaks it, so that state has to move to Redis, a signed token or the database. Either way, the shared database is usually what stops you next: read replicas come first, sharding much later.
+What that means in practice: scaling up is the fast, cheap fix, but every machine has a top size and it's still one machine, so when it dies you're down. Scaling out has no top size and survives failures, but it only works for stateless servers. A session held in one server's memory breaks it, so that state has to move to Redis, a signed token or the database. Either way, the shared database is usually what stops you next: read replicas come first, sharding much later.
 
-## The supermarket
+## The Supermarket Analogy
 
-Vertical scaling is hiring a faster cashier. It helps, until nobody faster exists. Horizontal scaling is opening more counters. Now someone has to point customers to a free counter, and that's the load balancer. And every counter still sells from the same stock room. That's your database.
+Scaling up is hiring a faster cashier. It helps, until nobody faster exists. Scaling out is opening more counters. Now someone has to point customers to a free counter, and that's the load balancer. And every counter still sells from the same stock room. That's your database.
 
-## Scaling up
+## Vertical scaling
 
 The appeal is that nothing changes. Same code, same deploy, same single database connection string. You stop the VM, pick a bigger instance type, and start it again. On most clouds that resize means a restart, so even scaling up costs a few minutes of downtime unless something else takes the traffic meanwhile.
 
@@ -35,32 +37,45 @@ It goes further than people expect. Stack Overflow famously served huge traffic 
   "subtitle": "A bigger machine, until there is no bigger one",
   "viewBox": "0 0 800 400",
   "fps": 25,
-  "totalFrames": 190,
+  "totalFrames": 210,
+  "posterFrame": 175,
   "boxes": {
-    "client": [30, 140, 190, 200, "Client"],
-    "s2":     [290, 145, 420, 195, "Server: 2 vCPU"],
-    "s4":     [455, 130, 605, 210, "Server: 4 vCPU"],
-    "s8":     [635, 110, 790, 230, "Server: 8 vCPU"]
+    "client": [40, 150, 200, 230, "Client"],
+    "server": [440, 160, 580, 220, "Server", "2 vCPU"]
   },
   "wires": [
-    [[190,170],[290,170]],
-    [[110,140],[110,70],[530,70],[530,130]],
-    [[110,200],[110,280],[712,280],[712,230]]
+    [[200,190],[440,190]]
+  ],
+  "resize": [
+    { "box": "server", "start": 60, "end": 70, "to": [440,145,620,235], "sub": "4 vCPU" },
+    { "box": "server", "start": 120, "end": 130, "to": [440,125,670,255], "sub": "8 vCPU" }
+  ],
+  "meters": [
+    { "x": 440, "y": 300, "width": 230, "label": "load", "box": "server", "hot": 95, "keys": [[0,40],[60,90],[70,45],[120,90],[130,45],[160,100],[198,100],[209,40]] }
+  ],
+  "tags": [
+    { "start": 160, "end": 205, "x": 555, "y": 108, "text": "max size", "color": "secondary" }
   ],
   "moves": [
-    { "start": 5,   "end": 20,  "path": [[190,170],[290,170]], "color": "primary", "label": "req" },
-    { "start": 24,  "end": 39,  "path": [[190,170],[290,170]], "color": "primary", "label": "req" },
-    { "start": 43,  "end": 58,  "path": [[190,170],[290,170]], "color": "primary", "label": "req" },
-    { "start": 72,  "end": 90,  "path": [[110,140],[110,70],[530,70],[530,130]], "color": "primary", "label": "req" },
-    { "start": 94,  "end": 112, "path": [[110,140],[110,70],[530,70],[530,130]], "color": "primary", "label": "req" },
-    { "start": 124, "end": 144, "path": [[110,200],[110,280],[712,280],[712,230]], "color": "secondary", "label": "req" },
-    { "start": 148, "end": 168, "path": [[110,200],[110,280],[712,280],[712,230]], "color": "secondary", "label": "req" }
+    { "start": 2, "end": 16, "path": [[200,190],[440,190]], "color": "primary" },
+    { "start": 18, "end": 32, "path": [[200,190],[440,190]], "color": "primary" },
+    { "start": 34, "end": 48, "path": [[200,190],[440,190]], "color": "primary" },
+    { "start": 70, "end": 84, "path": [[200,190],[440,190]], "color": "primary" },
+    { "start": 81, "end": 95, "path": [[200,190],[440,190]], "color": "primary" },
+    { "start": 92, "end": 106, "path": [[200,190],[440,190]], "color": "primary" },
+    { "start": 103, "end": 117, "path": [[200,190],[440,190]], "color": "primary" },
+    { "start": 130, "end": 144, "path": [[200,190],[440,190]], "color": "primary" },
+    { "start": 138, "end": 152, "path": [[200,190],[440,190]], "color": "primary" },
+    { "start": 146, "end": 160, "path": [[200,190],[440,190]], "color": "primary" },
+    { "start": 154, "end": 168, "path": [[200,190],[440,190]], "color": "secondary" },
+    { "start": 162, "end": 176, "path": [[200,190],[440,190]], "color": "secondary" },
+    { "start": 170, "end": 184, "path": [[200,190],[440,190]], "color": "secondary" }
   ],
   "captions": [
-    { "start": 0,   "end": 62,  "text": "2 vCPU: traffic grows, load climbs to 90%", "color": "primary" },
-    { "start": 62,  "end": 120, "text": "scale up to 4 vCPU: load drops to 45%, then climbs again", "color": "primary" },
-    { "start": 120, "end": 170, "text": "8 vCPU: load hits 100%, and this is the max size", "color": "secondary" },
-    { "start": 170, "end": 999, "text": "vertical = bigger machine, until there is no bigger one", "color": "secondary" }
+    { "start": 0, "end": 60, "text": "2 vCPU: traffic grows, load climbs to 90%", "color": "primary" },
+    { "start": 60, "end": 120, "text": "scale up to 4 vCPU: load drops to 45%, then climbs again", "color": "primary" },
+    { "start": 120, "end": 160, "text": "scale up to 8 vCPU: more traffic, load climbs to 100%", "color": "secondary" },
+    { "start": 160, "end": 999, "text": "8 vCPU is the max size: there is no bigger machine", "color": "secondary" }
   ]
 }
 {{< /moving-diagram >}}
@@ -71,7 +86,7 @@ Three things end the road:
 2. **The software.** More cores only help code that uses them. A single-threaded Node.js process or a Python app held back by the GIL won't go faster on 64 cores than on 8. Neither will a hot lock that every request takes.
 3. **The single point of failure.** One machine means one kernel panic, one bad disk or one botched deploy away from a full outage. A bigger box fails just as completely as a small one.
 
-## Scaling out
+## Horizontal scaling
 
 With several servers behind a load balancer, capacity grows roughly with the number of machines. The load balancer spreads requests (round-robin, or least-connections if requests vary a lot in cost), and it runs health checks so a dead server stops getting traffic.
 
@@ -101,6 +116,7 @@ sequenceDiagram
   "viewBox": "0 0 800 400",
   "fps": 25,
   "totalFrames": 210,
+  "posterFrame": 175,
   "boxes": {
     "client": [20, 150, 160, 190, "Client"],
     "lb":     [230, 150, 390, 190, "Load balancer"],
@@ -138,7 +154,7 @@ sequenceDiagram
 
 Failover isn't instant. Between the crash and the failed health checks (a few seconds with typical settings), requests already sent to the dead server fail. Clients and the load balancer need retries for idempotent requests, or users see a burst of errors. This is also how [Kubernetes](../../kubernetes/deployment-pipeline.md) treats replicas: readiness probes play the health-check role, and a Deployment replaces pods that die.
 
-Scaling out is also how you buy safety, not only capacity. Two small servers survive a failure that takes one big server down. The catch is headroom: if three servers each run at 90%, losing one pushes the other two to 135%. They're over capacity, so one failed server takes the whole fleet down with it. Size the fleet so the remaining servers can carry peak traffic with one gone (N+1). Leave room beyond that too: as [Day 1 on latency vs throughput](../latency-vs-throughput/index.md) showed, latency climbs steeply well before a server hits 100%. The calculator below does the sizing math.
+Scaling out is also how you buy safety, not only capacity. Two small servers survive a failure that takes one big server down. The catch is headroom: if three servers each run at 90%, losing one pushes the other two to 135%. They're over capacity, so one failed server takes the whole fleet down with it. Size the fleet so the remaining servers can carry peak traffic with one gone (N+1). Leave room beyond that too: as [Day 1 on latency vs throughput](../latency-vs-throughput/index.md) showed, latency climbs steeply well before a server hits 100%. The calculator in [Sizing it](#sizing-it) does that math.
 
 ## The stateless rule
 
@@ -169,6 +185,7 @@ sequenceDiagram
   "viewBox": "0 0 800 400",
   "fps": 25,
   "totalFrames": 200,
+  "posterFrame": 165,
   "boxes": {
     "client": [20, 150, 160, 190, "Client"],
     "lb":     [220, 150, 380, 190, "Load balancer"],
@@ -214,7 +231,7 @@ Each counter sells from the same stock room. Once the app tier is stateless and 
 
 **Read replicas** come first. Most apps read far more than they write, so sending reads to replicas takes load off the primary. The cost is replication lag: a user who just saved a change and reads from a replica might not see it yet. **Sharding** splits writes across databases by a key, and it comes much later, because cross-shard queries and transactions get hard. Both get their own day in this series. The same idea shows up in [Kafka partitions](../../kafka/apache-kafka-concepts/index.md), which are how Kafka spreads writes across brokers.
 
-Scaling the app tier also changes your deploys. With [independent services](../../architecture/microservices-fundamentals.md), each one can scale on its own, but the shared database still caps them all.
+The same limit follows you into [independent services](../../architecture/microservices-fundamentals.md). Each service can scale out on its own, but if they all share one database, that database still caps them all.
 
 ## Sizing it
 
@@ -249,8 +266,10 @@ Scaling the app tier also changes your deploys. With [independent services](../.
 }
 {{< /back-of-envelope >}}
 
-The model assumes servers fail independently, load splits evenly, capacity adds linearly, and the load balancer and database never fail. Real fleets share racks and deploys, so treat the fleet number as a best case. A dash means the value is undefined, such as the one-down load with a single server. With the defaults, 2,500 req/s needs 3 servers of 1,000 req/s. Run 4 and each sits at 62.5%, rising to 83.3% with one down. The fleet has enough servers up 99.985% of the time (shown rounded to 99.99), which is about 1.3 hours a year short of capacity. One big server with the same 99.5% uptime is down about 43.8 hours a year. Set servers to 3 and the one-down load goes to 125%: three servers carry the peak, but they can't absorb a failure.
+The model assumes servers fail independently, load splits evenly, capacity adds linearly, and the load balancer and database never fail. Real fleets share racks and deploys, so treat the fleet number as a best case. A dash means the value is undefined, such as the one-down load with a single server.
+
+With the defaults, 2,500 req/s needs 3 servers of 1,000 req/s. Run 4 and each sits at 62.5%, rising to 83.3% with one down. The fleet has enough servers up 99.985% of the time (shown rounded to 99.99), which is about 1.3 hours a year short of capacity. One big server with the same 99.5% uptime is down about 43.8 hours a year. Set servers to 3 and the one-down load goes to 125%: three servers carry the peak, but they can't absorb a failure.
 
 ## In practice
 
-Start vertical. It's the cheapest fix and buys you time while you make the app stateless. Then scale out, for capacity and for safety, and expect the database to be the next wall. The [back-of-the-envelope estimation](../back-of-the-envelope-estimation.md) note covers how to get the peak request rate you'd put in the calculator. Scale up to buy time. Scale out to survive.
+Start by scaling up. It's the cheapest fix and buys you time while you make the app stateless. Then scale out, for capacity and for safety, and expect the database to be the next wall. The [back-of-the-envelope estimation](../back-of-the-envelope-estimation.md) note covers how to get the peak request rate you'd put in the calculator. Scale up to buy time. Scale out to survive.
