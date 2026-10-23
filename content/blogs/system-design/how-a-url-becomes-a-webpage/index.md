@@ -227,7 +227,7 @@ sequenceDiagram
   "captions": [
     { "start": 0,   "end": 40,  "text": "TCP and TLS 1.3 run against an edge 20 ms away", "color": "primary" },
     { "start": 40,  "end": 126, "text": "cache miss: one origin round trip, no origin handshakes", "color": "secondary" },
-    { "start": 126, "end": 148, "text": "200 ms to first byte, against 350 ms going direct", "color": "secondary" },
+    { "start": 126, "end": 148, "text": "200 ms to first byte, vs 350 ms direct at 100 ms round trip", "color": "secondary" },
     { "start": 148, "end": 999, "text": "cache hit: the origin never sees the request", "color": "primary" }
   ]
 }
