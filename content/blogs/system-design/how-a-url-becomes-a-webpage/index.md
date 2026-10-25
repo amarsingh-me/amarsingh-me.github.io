@@ -14,9 +14,9 @@ mermaid: true
 
 Between pressing Enter and getting the first byte of a response (time to first byte, TTFB), the browser runs four steps in order. DNS resolves the hostname to an IP address, usually from a cache. TCP opens a connection with a three-way handshake, which costs one round trip. TLS agrees on encryption keys and checks the server's certificate, which costs one more round trip on TLS 1.3 and two on TLS 1.2. Only then does HTTP send `GET /` and wait. On a first visit, most of that wait goes to setup round trips. Server time is a small part of it, and each round trip costs more the farther the user is from the server. A 50 ms backend behind a 200 ms mobile link and TLS 1.2 still gives about one second to first byte. The fixes all come down to doing fewer round trips or shorter ones: reuse connections, terminate them near the user, use newer protocols that merge handshakes, and tune DNS caching on purpose. Rendering comes after the first byte and is out of scope here.
 
-## The bank call
+## The bank call analogy
 
-The post's analogy is calling a bank for the first time. You look up the number (DNS), wait for someone to pick up (TCP), confirm it's really the bank and agree to talk in code (TLS), and then ask your question (HTTP). If you call again on the same open line, you go straight to the question. That's keep-alive: reusing an open connection so later requests skip DNS, TCP and TLS.
+You are calling a bank for the first time. You look up the phone number (DNS), wait for someone to pick up (TCP), confirm it's really the bank and agree to talk in code (TLS), and then ask your question (HTTP). If you call again on the same open line, you go straight to the question. That's keep-alive: reusing an open connection so later requests skip DNS, TCP and TLS.
 
 Each of the first three steps is a conversation with someone far away, and you can't start the next one until the last reply arrives. That's why the distance counts so much.
 
@@ -36,7 +36,7 @@ sequenceDiagram
   participant R as DNS resolver
   participant N as Root / TLD / Authoritative
   participant S as Server
-  B->>R: where is example.com?
+  B->>R: where is mybank.com?
   R->>N: cold lookup only
   N-->>R: 203.0.113.10
   R-->>B: 203.0.113.10
