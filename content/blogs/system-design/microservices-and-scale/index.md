@@ -9,41 +9,18 @@ date: 2026-10-26T00:00:00+08:00
 title: "Myth: Microservices Make You Scale Better"
 tags: [system-design, microservices, distributed-systems]
 categories: [System Design]
-mermaid: true
 ---
 
-"Scale" covers two different problems. Traffic scale is handling more requests per second. Team scale is letting more engineers ship without stepping on each other. A microservice is a small service that deploys on its own and talks to the other services over the network, and splitting into microservices mostly helps team scale. For traffic, a stateless monolith already scales out: run ten copies behind a load balancer. Splitting it turns function calls into network calls, and each one adds latency and one more place to fail. A request that crosses four services instead of one pays three extra hops, multiplies four availability numbers together, and can turn one retry policy into dozens of calls when something deep in the chain goes down. Split a service out when one part needs very different resources, or when teams keep blocking each other's deploys. Otherwise, scale the monolith first.
-
-## Two kinds of scale
+"Scale" covers two different problems:
 
 - **Traffic scale**: handling more requests per second.
-- **Team scale**: letting more engineers ship without stepping on each other. That means independent deploys and fewer merge and release conflicts.
+- **Team scale**: letting more engineers ship without stepping on each other.
 
-A **monolith** is one deployable application where modules call each other in-process, through plain function calls. A **microservice** deploys on its own and reaches the others over the network.
-
-The two definitions already point at the answer. Nothing about deploying separately gives a request more CPU. What it gives you is the freedom for the payments team to release on Tuesday without waiting for the search team's fix.
+A **monolith** is one deployable application whose modules call each other through plain function calls. A **microservice** deploys on its own and talks to the others over the network. **Splitting into microservices mostly helps team scale, not traffic scale.** Deploying separately gives no request more CPU. It lets the payments team release on Tuesday without waiting for the search team. A stateless monolith already scales out: run ten copies behind a load balancer. Split it only when one part needs very different resources, or when teams keep blocking each other's deploys.
 
 ## The same request, two ways
 
-Take an order that touches three modules: orders, payments and users. In the monolith, the client makes one network call. Orders calls payments, payments calls users, and both of those are function calls that cost nanoseconds and can't time out. Split the same code into three services and every arrow becomes a network hop with its own timeout, its own retry policy and its own way to fail.
-
-{{< mermaid >}}
-sequenceDiagram
-  participant C as Client
-  participant O as orders
-  participant P as payments
-  participant U as users
-  C->>O: POST /orders
-  O->>P: charge (network hop)
-  P-xU: get user (times out)
-  P->>U: get user (retry)
-  U-->>P: user
-  P-->>O: charged
-  O-->>C: 201 Created
-  Note over O,U: In the monolith these three are one process and the middle calls are function calls
-{{< /mermaid >}}
-
-The animation runs both versions side by side. The top row finishes after one network call. The bottom row needs three hops plus a retry, and it finishes much later.
+Take an order that touches orders, payments and users. In the monolith the client makes one network call, and the rest are function calls that cost nanoseconds and can't time out. Split the code into three services and every arrow becomes a network hop with its own timeout and retry policy. The animation runs both versions side by side.
 
 {{< moving-diagram >}}
 {
@@ -114,15 +91,17 @@ The animation runs both versions side by side. The top row finishes after one ne
 }
 {{< /moving-diagram >}}
 
+*Figure 1: The same request as one process (top) and as three services (bottom). Only the bottom row pays for hops and a retry.*
+
 ## Why splitting doesn't add capacity
 
-Capacity comes from machines. A stateless monolith keeps no session in its own memory, so you can put as many copies behind a load balancer as the database allows. That's plain [horizontal scaling](../vertical-vs-horizontal-scaling/), and it works the same whether the code inside is one module or forty. Ten copies of the monolith give you ten copies of orders, payments and users.
+Capacity comes from machines. Ten copies of a stateless monolith give you ten copies of orders, payments and users, as far as the database allows. That's plain [horizontal scaling](../vertical-vs-horizontal-scaling/), and it doesn't care whether the code inside is one module or forty.
 
-Splitting moves the same work onto more boxes and adds work on top: serializing the request, sending it, parsing it on the other side, and the same again for the response. Inside one data center a hop costs somewhere around a millisecond or a few, plus the tail. The [Latency vs Throughput](../latency-vs-throughput/) note explains why that tail is what users feel: a request that crosses five services waits on the slowest of five p99s. New connections cost round trips too, as the [URL to first byte](../how-a-url-becomes-a-webpage/) note shows, so services that skip connection pooling pay for TCP and TLS over and over.
+Splitting adds work on top. Every call gets serialized, sent and parsed, and then the response makes the same trip back. Inside one data center a hop costs around a millisecond or a few, plus the tail.[^hop] As the [Latency vs Throughput](../latency-vs-throughput/) note explains, a request that crosses five services waits on the slowest of five p99s. Services that skip connection pooling also pay for TCP and TLS handshakes again and again, as the [URL to first byte](../how-a-url-becomes-a-webpage/) note shows.
 
-Failure multiplies the same way. If each service is up 99.9% of the time and a request needs four of them in a row, the request succeeds 99.6% of the time. That's roughly four times the downtime of one process.
+Failure multiplies too. If each service is up 99.9% of the time and a request needs four in a row, it succeeds 99.6% of the time,[^avail] which is about four times the downtime.
 
-Retries are worse. Say each caller retries a failed call twice, which sounds sensible. When the last service in a chain of four goes down, the third service tries it three times, and each failure goes back up the chain. The second service retries the third three times, and the first does the same. The dead service ends up taking 3 × 3 × 3 = 27 calls for one user click, right when it's trying to recover.
+Retries are worse. If every caller retries a failed call twice, each layer multiplies the calls below it by three. When the last of four services goes down, it takes 3 × 3 × 3 = 27 calls for one user click, right when it's trying to recover. The animation shrinks this to three services and one retry each:
 
 {{< moving-diagram >}}
 {
@@ -172,73 +151,48 @@ Retries are worse. Say each caller retries a failed call twice, which sounds sen
 }
 {{< /moving-diagram >}}
 
-The usual fixes are to retry at one layer only (often the edge), put a retry budget on each client, and add a circuit breaker so callers stop knocking on a service that's already down.
+*Figure 2: With users down, a retry at each layer repeats everything below it, so the calls reaching users double with every layer.*
 
-## Do the sums
-
-Change the number of services a request passes through and see what the hops cost. Set it to 1 for the monolith.
-
-{{< back-of-envelope >}}
-{
-  "sections": [
-    {
-      "title": "One request through the chain",
-      "inputs": [
-        { "id": "services", "label": "Services the request passes through, in order", "default": 4, "step": 1 },
-        { "id": "workMs", "label": "Total work across all of them", "default": 20, "step": 5, "unit": "ms" },
-        { "id": "hopMs", "label": "Cost of one internal network call", "default": 5, "step": 1, "unit": "ms" }
-      ],
-      "outputs": [
-        { "id": "hops", "label": "Network hops between services", "formula": "Math.max(0, Math.floor(services) - 1)", "format": "number" },
-        { "id": "monoMs", "label": "Backend time as one process (ms)", "formula": "Math.max(0, workMs)", "format": "number" },
-        { "id": "splitMs", "label": "Backend time split into services (ms)", "formula": "Math.max(0, workMs) + hops * Math.max(0, hopMs)", "format": "number" },
-        { "id": "hopShare", "label": "Share of that time spent on hops (%)", "formula": "splitMs > 0 ? hops * Math.max(0, hopMs) / splitMs * 100 : 0", "format": "number" }
-      ]
-    },
-    {
-      "title": "When something fails",
-      "inputs": [
-        { "id": "availPct", "label": "Uptime of each service", "default": 99.9, "step": 0.1, "unit": "%" },
-        { "id": "retries", "label": "Retries per failed call, at every layer", "default": 2, "step": 1 }
-      ],
-      "outputs": [
-        { "id": "monoAvail", "label": "Request success, one process (%)", "formula": "Math.min(Math.max(availPct, 0), 100)", "format": "number" },
-        { "id": "splitAvail", "label": "Request success, split (%)", "formula": "Math.pow(monoAvail / 100, hops + 1) * 100", "format": "number" },
-        { "id": "monoDown", "label": "Hours a month failing, one process", "formula": "(100 - monoAvail) / 100 * 730", "format": "number" },
-        { "id": "splitDown", "label": "Hours a month failing, split", "formula": "(100 - splitAvail) / 100 * 730", "format": "number" },
-        { "id": "amplify", "label": "Calls reaching the last service when it's down", "formula": "Math.pow(Math.max(0, Math.floor(retries)) + 1, hops)", "format": "number" }
-      ]
-    }
-  ]
-}
-{{< /back-of-envelope >}}
-
-The model assumes the services are called one after another (no parallel fan-out), every hop costs the same, services fail independently with the same uptime, and every layer retries the full count before giving up. The client's own retries are left out because both designs have them. With the defaults: 3 hops, 20 ms as one process against 35 ms split (43% of it on hops), 99.9% success against 99.6%, which is 0.73 hours a month of failures against 2.92. If the last service dies, 3³ = 27 calls reach it.
+The usual fix is to retry at one layer only, often the edge. A retry budget per client and a circuit breaker help too, so callers stop hitting a service that's already down.
 
 ## The Prime Video case
 
-In March 2023 the Prime Video tech blog described one service: the tool that monitors the audio and video quality of streams. It was one monitoring service, and the post says nothing about the rest of Prime Video's architecture.
+In March 2023 the Prime Video tech blog described one service, the tool that monitors stream quality. Its first version ran on AWS Step Functions and Lambda, and passed video frames between steps through S3. Step Functions bills per state transition, and every frame meant S3 calls, so both costs grew with load. The team moved everything into one process on Amazon ECS, passed frames in memory, and cut infrastructure cost by over 90%. To grow, they ran several copies of that process. That's scaling out a monolith.[^cockcroft]
 
-The first version was distributed. AWS Step Functions orchestrated the steps, Lambda functions ran the checks, and a component split the video into frames and stored them in S3 for the detectors to download. Two costs grew with load. Step Functions charges per state transition, and the service made several transitions for every second of every stream, so it also ran into account limits. Passing frames through S3 meant a large number of S3 calls, which cost money for every frame.
-
-The team moved all the components into one process, running on Amazon ECS, so frames were passed in memory. Infrastructure cost dropped by over 90%. To grow past one machine they ran several copies of that process, each handling part of the work. That's scaling out a monolith.
-
-The lesson is narrow. When the parts hand each other a lot of data, moving the data between them can cost more than processing it. It's no verdict against serverless or against microservices in general.
+The lesson is narrow. When parts hand each other a lot of data, moving the data can cost more than processing it. It isn't a verdict on microservices in general.
 
 ## When splitting is the right call
 
-**Very different resources.** Video transcoding wants lots of CPU or a GPU and can wait in a queue. Checkout wants low latency and has to be up. Running them in one process means you size every copy for the worse of the two, and a transcoding spike can slow checkout. Pulling transcoding out lets each one scale and fail on its own.
+The strongest traffic argument for services is that you scale only the busy part. For a typical web app the idle modules cost each copy some memory, not CPU, so it only wins when the busy part needs different hardware.
 
-**Teams blocking each other.** With a few dozen engineers in one codebase, the pain shows up as a long merge queue, release trains everyone must board, and one team's broken test holding up everyone else's deploy. Separate services with separate pipelines fix exactly that. This is what microservices are best at.
+**Very different resources.** Video transcoding wants CPU or a GPU and can wait in a queue. Checkout wants low latency and must stay up. In one process you size every copy for the worse of the two, and a transcoding spike slows checkout. Split, each scales and fails on its own.
 
-There's a middle step. A modular monolith keeps one deployable but enforces boundaries between components inside it. Shopify has written publicly about doing this with its large Rails codebase. You get most of the code ownership and none of the network hops, and if one component later needs to move out, its boundary is already drawn.
+**Teams blocking each other.** With a few dozen engineers in one codebase you get long merge queues, release trains, and one team's broken test holding up everyone's deploy. Separate services with separate pipelines fix exactly that.
+
+A middle step is the modular monolith: one deployable with enforced boundaries inside it. Shopify has written about doing this with its large Rails codebase.[^shopify] You get most of the ownership with none of the hops, and the boundary is already drawn if a component later needs to move out.
 
 ## When it's the wrong call
 
-Splitting backfires when the team is small. Every new service needs a pipeline, dashboards, alerts, tracing and somebody on call at 3am, and with four or five engineers that work lands on the same people who were supposed to ship features. It also backfires when the domain boundaries aren't clear yet. Cut in the wrong place and two services have to change and deploy together for every feature. Sharing one database across services has the same effect, and the [microservices fundamentals](../../architecture/microservices-fundamentals.md) note explains why database-per-service is the rule that keeps deploys independent. Get that wrong and you've built a distributed monolith: all the network costs of microservices, and none of the independence.
+Splitting backfires when the team is small. Every service needs a pipeline, dashboards, alerts, tracing and someone on call, and with five engineers that work lands on the people meant to ship features. It also backfires when domain boundaries aren't clear yet, or when services share one database. Then two services must change and deploy together for every feature. The [microservices fundamentals](../../architecture/microservices-fundamentals.md) note covers why database-per-service keeps deploys independent. Get it wrong and you've built a distributed monolith: the network costs without the independence.
 
 ## What to measure
 
-Before splitting, check which kind of scale hurts. For traffic, look at CPU and memory per copy and at the database, which is usually the real limit. For team scale, measure deploy frequency, time from merge to production, how long changes sit in the merge queue, and how often one team's change blocks another's release.
+Before splitting, find out which scale hurts. For traffic, check CPU and memory per copy and the database, which is usually the real limit. For teams, check deploy frequency, merge-to-production time, and how often one team's change blocks another's release.
 
-After splitting, track hops on the critical path of your main requests, p99 latency per hop, retry rate per client and pages per on-call engineer. If those climb and deploy frequency doesn't, the split cost more than it gave back.
+After splitting, track hops on the critical path, p99 per hop, retry rate per client and pages per on-call engineer. If those climb and deploy frequency doesn't, the split cost more than it gave back.
+
+## References
+
+**Case studies**
+- [Reduce costs by 90% by moving from microservices to monolith](https://devclass.com/2023/05/05/reduce-costs-by-90-by-moving-from-microservices-to-monolith-amazon-internal-case-study-raises-eyebrows/), DevClass, May 2023. Coverage of the Prime Video post. The original on primevideotech.com now redirects.
+- [Prime Video monolith debate](https://thestack.technology/prime-video-monolith-architecture-debate-bad-takes-adrian-cockcroft), Adrian Cockcroft in The Stack. The counter-reading of the same case.
+- [Deconstructing the Monolith](https://shopify.engineering/deconstructing-monolith-designing-software-maximizes-developer-productivity), Kirsten Westeinde, Shopify Engineering, 2019.
+
+**Essays**
+- [Monolith First](https://martinfowler.com/bliki/MonolithFirst.html), Martin Fowler.
+- [Microservices](https://martinfowler.com/articles/microservices.html), James Lewis and Martin Fowler, 2014.
+
+[^hop]: A rough range, not a measurement. Payload size, serialization, connection reuse and service-mesh sidecars all move it.
+[^avail]: 0.999⁴ ≈ 0.996, so the failure rate goes from 0.1% to about 0.4%.
+[^cockcroft]: Adrian Cockcroft reads it differently: the team reused most of its code as one long-running service, scaled horizontally on ECS, which he calls the normal next step after a serverless prototype. Both readings agree the savings came from passing frames in memory.
+[^shopify]: In the 2019 post, Shopify tracked boundary violations with a tool (Wedge) rather than blocking them outright. Strict enforcement was still a goal.
