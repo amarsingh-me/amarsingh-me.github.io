@@ -262,3 +262,20 @@
     transform: none;
   }
 }
+
+/* ---------- Article body: justified text ---------- */
+/* Desktop only: phone columns are too narrow for the long inline code tokens. */
+@media (min-width: 768px) {
+  .article-content p,
+  .article-content li {
+    text-align: justify;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+  }
+}
+
+/* Mermaid labels are <p> tags inside the SVG; keep their own alignment. */
+.article-content :is(svg, pre) :is(p, li) {
+  text-align: inherit;
+  hyphens: manual;
+}
