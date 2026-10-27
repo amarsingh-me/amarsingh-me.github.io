@@ -39,9 +39,9 @@ The second query is "every message user 42 sent". Postgres uses a second index a
 {{< mermaid >}}
 sequenceDiagram
   participant A as app
-  participant G as #general
-  participant R as #random
-  participant D as #dev
+  participant G as general partition
+  participant R as random partition
+  participant D as dev partition
   A->>G: messages by user 42?
   A->>R: messages by user 42?
   A->>D: messages by user 42?
