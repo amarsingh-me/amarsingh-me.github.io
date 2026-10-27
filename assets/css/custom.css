@@ -279,3 +279,22 @@
   text-align: inherit;
   hyphens: manual;
 }
+
+/* ---------- Posts index page: smaller, tighter headings ---------- */
+.article-content.post-index h2 {
+  font-size: 1.35rem;
+  margin-top: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+.article-content.post-index h3 {
+  font-size: 1.05rem;
+  font-weight: 500;
+  margin-top: 0.4rem;
+  margin-bottom: 0.4rem;
+}
+.article-content.post-index h4 {
+  font-size: 0.95rem;
+  font-weight: 500;
+  margin-top: 0.3rem;
+  margin-bottom: 0.3rem;
+}

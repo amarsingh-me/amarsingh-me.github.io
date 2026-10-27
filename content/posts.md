@@ -5,6 +5,8 @@ weight: 10
 showAuthor: false
 showWordCount: false
 showReadingTime: false
+showTableOfContents: false
+compactIndex: true
 ---
 ## Core Concepts
 ### [Solid Principle]({{<ref "./blogs/basics/Solid-Principle.md">}})
