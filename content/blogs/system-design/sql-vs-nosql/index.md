@@ -5,18 +5,18 @@ showAuthor: true
 showDate: true
 showWordCount: true
 showReadingTime: true
-date: 2026-10-26T00:00:00+08:00
+date: 2026-10-27T00:00:00+08:00
 title: "SQL vs NoSQL: Access Patterns, Not Hype"
 tags: [system-design, distributed-systems, postgres]
 categories: [System Design]
 mermaid: true
 ---
 
-Pick a database by its access pattern, meaning how your app reads and writes data: which queries run, how often, and keyed by what. SQL databases like Postgres and MySQL keep rows in tables with a fixed schema, and they give you joins, transactions and ad hoc queries nobody planned for. NoSQL is an umbrella term covering key-value, document, wide-column and graph stores. The big distributed ones, DynamoDB and Cassandra, spread data across machines by a key and want each table designed around a query you already know. A query that names the key reads one partition, however large the table gets. A query that doesn't name it has to ask every partition, so a second question usually gets a second table, and you write every row twice. Discord's message store is the standard example. Early on, when queries change every month, SQL's flexibility is worth more than scale you don't need yet.
+A team moves its app to MongoDB so it can handle more users. Then finance asks for a monthly revenue report, and someone writes a 200-line script to do what one SQL `JOIN` would. MongoDB scales fine. The app was asking it a kind of question it wasn't set up to answer. **Pick a database by its access pattern, not by how well it scales.** Big distributed NoSQL stores like DynamoDB and Cassandra serve one known, keyed query very well. A query that names the key reads one partition. A query that doesn't either asks every partition or needs a second table. Early on, when queries change every month, SQL's flexibility is worth more than scale you don't need yet.
 
 ## The terms
 
-- **Access pattern**: how your app reads and writes data. Which queries run, how often, keyed by what.
+- **Access pattern**: the queries your app runs most, the key it looks data up by, and how often it reads compared to writes.
 - **SQL database**: a relational database (Postgres, MySQL) that keeps rows in tables with a fixed schema. It supports joins, transactions and ad hoc queries you never planned for.
 - **NoSQL**: an umbrella term with two readings, "no SQL" or "not only SQL". It covers key-value, document, wide-column and graph stores.
 - **Distributed NoSQL stores** (DynamoDB, Cassandra): they want each table designed around a query you already know, with data spread across machines by a key. Ad hoc questions get hard.
@@ -24,17 +24,17 @@ Pick a database by its access pattern, meaning how your app reads and writes dat
 
 ## Why "it scales" is the wrong reason
 
-A single Postgres primary goes a long way. You can [scale it up](../vertical-vs-horizontal-scaling/) to a very large machine, add read replicas for reads, and split big tables with native partitioning. What it can't do out of the box is spread writes across many machines. Distributed NoSQL stores do that from day one. The partition key decides which machine holds a row, so adding machines adds capacity for both reads and writes.
+As the [microservices and scale](../microservices-and-scale/) note argues, a stateless app scales out by running more copies, and they all wait on the same database. You can [scale a Postgres primary up](../vertical-vs-horizontal-scaling/) to a very large machine, add read replicas, and split big tables with native partitioning. What it can't do out of the box is spread writes across many machines.
 
-That's a real advantage, and it comes with a condition. The store can only find a row quickly if the query names the partition key. The planner in Postgres can pick an index, join three tables and answer a question you thought of five minutes ago. Cassandra asks you to have thought of the question when you created the table.
+Distributed NoSQL stores do that from day one. The partition key decides which machine holds a row, so adding machines adds capacity for reads and writes alike. That's a real advantage. The condition is that the store only finds a row quickly when the query names the partition key. The Postgres planner can pick an index, join three tables and answer a question you thought of five minutes ago. Cassandra asks you to have thought of the question when you created the table.
 
-So the useful question is which queries your app runs, and whether one of them is so large and so predictable that it needs a store built around it.
+So the question is whether one of your queries is large and predictable enough to need a store built around it.
 
 ## Two queries, two stores
 
-Take a chat app. Messages live in Postgres in the top row and in a wide-column store partitioned by channel in the bottom row. The first query is "latest 50 messages in #general". Both stores answer it with one trip: Postgres uses an index on `(channel_id, created_at)`, and the NoSQL store reads the #general partition.
+Take a chat app, with messages in Postgres (top row) and in a wide-column store partitioned by channel (bottom row). The first query is "latest 50 messages in #general". Both answer it in one trip. Postgres uses an index on `(channel_id, created_at)`. The NoSQL store reads the #general partition.
 
-The second query is "every message user 42 sent". Postgres uses another index on the same table and makes one trip again. The NoSQL store has no user key, so it asks every partition and waits for all of them.
+The second query is "every message user 42 sent". Postgres uses a second index and still makes one trip. The NoSQL store has no user key, so it asks every partition and waits for all of them.
 
 {{< mermaid >}}
 sequenceDiagram
@@ -49,6 +49,8 @@ sequenceDiagram
   R-->>A: matches
   D-->>A: matches (slowest one sets the response time)
 {{< /mermaid >}}
+
+*Figure 1: Without the partition key, the app asks every partition and waits for the slowest reply.*
 
 {{< moving-diagram >}}
 {
@@ -111,17 +113,19 @@ sequenceDiagram
 }
 {{< /moving-diagram >}}
 
-With three partitions that looks harmless. With hundreds of nodes and thousands of partitions, the unkeyed query touches every machine in the cluster. It's as slow as the slowest machine at that moment, which is the tail-latency problem from [Latency vs Throughput](../latency-vs-throughput/). Run it often and it eats capacity the keyed queries need.
+*Figure 2: Both stores answer the keyed query in one trip. Only the NoSQL row has to fan out for the user query.*
+
+With three partitions that looks harmless. With thousands, the unkeyed query touches every machine and is as slow as the slowest one, the tail-latency problem from [Latency vs Throughput](../latency-vs-throughput/). Run it often and it eats capacity the keyed queries need.
 
 ## How Discord did it
 
-Discord's hottest query is "show the latest messages in this channel". In January 2017 their engineering blog described moving messages from MongoDB to Cassandra, built around that one query.
+Discord is the counter-case to the revenue report: a team that picked its NoSQL store because of its access pattern. Its hottest query is "show the latest messages in this channel". By November 2015 it had stored about 100 million messages in MongoDB, and according to the January 2017 post the data and the index no longer fit in RAM and latency became unpredictable.[^1] The team moved messages to Cassandra.
 
-The primary key is `((channel_id, bucket), message_id)`. The partition key is the channel plus a bucket, which is a fixed window of time. Message IDs are Snowflake IDs, which sort by creation time, so inside a partition the messages are already in order. Loading a channel reads the newest bucket of one partition. That cost stays flat however many billions of messages pile up across the cluster.
+The primary key is `((channel_id, bucket), message_id)`. The partition key is the channel plus a bucket, a fixed window of time. Message IDs are Snowflake IDs, which sort by creation time, so inside a partition the messages are already in order. Loading a channel reads the newest bucket of one partition, and that cost stays flat however many billions of messages pile up across the cluster.
 
-The bucket is there so a busy channel doesn't grow one partition forever. Every partition lives on a fixed set of replica nodes, so an unbounded partition becomes a hot spot that no amount of new hardware fixes. The trade-off shows up in quiet channels: if nobody has posted in a while, the newest bucket may be empty, and the read has to walk back through older buckets.
+The bucket stops a busy channel from growing one partition forever. Discord sized it at about 10 days of messages, so that even the largest channels stayed under 100 MB per partition. Quiet channels have the opposite problem: a page of history spreads across many buckets, so the team tracked empty buckets per channel to skip them.
 
-In 2023 Discord wrote a follow-up about storing trillions of messages. They moved to ScyllaDB and kept the same data model. The access pattern drove the design both times. The database brand was the part that changed.
+The 2023 follow-up shows the key's failure mode. A busy channel concentrates reads on one partition, and the post says a hot partition "frequently affected latency across our entire database cluster". Discord moved the messages to ScyllaDB in 2022 and still partitions them by channel and bucket. The access pattern, and the key built for it, outlived the database.
 
 The catch is the one from the animation. "Every message user 42 sent" names no channel. On this table it means asking every partition. The standard fix in a wide-column store is a second table keyed by user, written alongside the first.
 
@@ -161,11 +165,13 @@ The catch is the one from the animation. "Every message user 42 sent" names no c
 }
 {{< /moving-diagram >}}
 
-DynamoDB offers the same thing as a managed feature: a global secondary index is a second copy of the table under a different key, kept up to date asynchronously. You still pay for the extra writes and storage, and reads from it can lag the main table slightly.
+*Figure 3: A second question costs a second copy of every message, and the read becomes keyed again.*
+
+DynamoDB's global secondary index is the managed version. It's a second copy under another key, updated asynchronously, so it can lag a little.
 
 ## Do the sums
 
-The first section shows what a query without the partition key costs. The second shows what a second table costs instead.
+Compare the two costs: asking every partition, or keeping a second table.
 
 {{< back-of-envelope >}}
 {
@@ -202,24 +208,60 @@ The first section shows what a query without the partition key costs. The second
 }
 {{< /back-of-envelope >}}
 
-The model assumes each partition is slow independently with the same chance, the query waits for every partition, and each extra table stores a full copy of the message, with replication counted separately. With the defaults, a keyed query is slow 1% of the time and the 50-partition query 1 − 0.99⁵⁰ ≈ 39.5% of the time, and 200 queries a second turn into 10,000 partition reads. Two tables at 5,000 messages a second mean 10,000 writes a second and 5,000 × 86,400 × 500 × 2 = 432 GB a day (402 GiB, which is what the calculator shows) before replication.
+*Figure 4: Asking every partition multiplies both the chance of a slow reply and the read load. A second table moves that cost onto writes and storage.*
+
+The model assumes partitions are slow independently with equal chance, the query waits for all of them, and each extra table stores a full copy. With the defaults, a keyed query is slow 1% of the time and the 50-partition query 1 − 0.99⁵⁰ ≈ 39.5% of the time, and 200 queries a second turn into 10,000 partition reads. Two tables at 5,000 messages a second mean 10,000 writes a second and 5,000 × 86,400 × 500 × 2 = 432 GB a day before replication.[^2]
 
 ## The lines blur
 
-The SQL vs NoSQL split is less sharp than it was ten years ago. Postgres stores JSON in `jsonb` columns and can index inside them (see [GIN indexes for JSONB](../../databases/postgres-gin-indexes-for-jsonb.md)), so a flexible schema doesn't require a document store. DynamoDB has had transactions across items since 2018 (`TransactWriteItems`). MongoDB has supported multi-document transactions since version 4.0. Picking NoSQL no longer means giving up transactions, and picking Postgres doesn't mean a rigid schema for every field.
+The SQL vs NoSQL split is less sharp than it was ten years ago. Postgres stores JSON in `jsonb` columns and can index inside them with GIN (see [GIN indexes for JSONB](../../databases/postgres-gin-indexes-for-jsonb.md)), so a flexible schema doesn't require a document store. DynamoDB's `TransactWriteItems` commits up to 100 writes all-or-nothing, though each item costs two writes of capacity, one to prepare and one to commit. MongoDB runs multi-document transactions on replica sets from version 4.0 and on sharded clusters from 4.2.
 
 What hasn't blurred is the partition key. A distributed store with transactions still wants you to know the query ahead of time.
 
-## Choosing
+## Back to the revenue report
 
-Write down your top five queries before you pick anything, with rough rates for each. Then:
+The report finance wanted looks like this in SQL:
 
-- **Lots of relations, reports, or money moving between accounts**: start with SQL. Joins and multi-row transactions are where relational databases are strongest, and finance teams will ask questions nobody planned for.
-- **One huge, predictable read path** (chat history, sessions, carts): a key-value or wide-column store fits, keyed by the thing every request already knows.
-- **Both**: a common setup is Postgres as the system of record and a key-value store for the one hot path.
+```sql
+SELECT a.plan, date_trunc('month', o.paid_at) AS month, sum(o.amount) AS revenue
+FROM orders o JOIN accounts a ON a.id = o.account_id
+WHERE o.status = 'paid'
+GROUP BY 1, 2;
+```
 
-Each choice has a wrong time. NoSQL is the wrong call when queries change every month, because every new question needs a new table and a backfill. Postgres is the wrong call when one keyed write path outgrows the biggest primary you can buy and sharding by hand becomes your main project.
+In the MongoDB version, orders were modeled as documents for the app's main read path, and nobody planned for grouping by a field in another collection. The 200-line script does the join, grouping and date handling in application code, and must be kept correct as both shapes change.
+
+To be fair to MongoDB, its aggregation pipeline has `$lookup` and `$group`, and a good pipeline would be much shorter than 200 lines. The script mostly shows a data model built for one access pattern being asked about another. That's exactly the risk when you pick a store before you know the questions.
+
+## The case for starting with NoSQL
+
+The other side has a strong argument. DynamoDB has no server to size and no schema migrations. Its latency stays flat as the table grows. Many apps really are key-value at heart: sessions, carts, profiles looked up by ID. If you'll need to spread writes across machines anyway, designing for a partition key on day one costs less than retrofitting sharding onto Postgres later.
+
+That holds when the access pattern is known and stable, as Discord's was. It breaks down while the product is still finding its shape, and every new report or filter becomes a new table and a backfill. My rule of thumb, and it's a judgment call rather than a measurement, is that a young product doesn't know its top five queries yet.[^3]
+
+## When each choice is the wrong call
+
+Write down your top five queries, with rough rates, before you pick anything. Relations, reports or money moving between accounts point to SQL. One huge, predictable read path (chat history, sessions, carts) points to a key-value or wide-column store. Many systems use both: Postgres as the system of record, a key-value store for the hot path.
+
+**NoSQL is the wrong call** when queries change often. You'll see it as a growing list of "second tables", backfill jobs before each feature, scripts like the revenue one, and queries that touch every partition. A hot key fails the other way. One channel, tenant or viral product takes most of the traffic. Its partition's nodes saturate while the rest of the cluster idles.
+
+**Postgres is the wrong call** when one keyed write path outgrows the biggest primary you can buy. You'll see write latency and replication lag climb with traffic, and sharding by hand becomes the team's main project.
 
 ## What to measure
 
-In Postgres, `pg_stat_statements` ranks queries by total time and call count, which gives you the real top five rather than the ones you remember. In a distributed store, track how many partitions each query touches, the size and request rate of the largest partitions, and p99 latency per node. A query that touches every partition, or one partition taking far more traffic than the rest, tells you the key no longer matches the access pattern.
+In Postgres, `pg_stat_statements` ranks queries by total time and calls, so you get the real top five. In a distributed store, track how many partitions each query touches, the size and request rate of the largest partitions, and p99 latency per node. A query that touches every partition, or one partition taking far more traffic than the rest, tells you the key no longer matches the access pattern.
+
+## References
+
+**Articles**
+- Stanislav Vishnevskiy, [How Discord Stores Billions of Messages](https://discord.com/blog/how-discord-stores-billions-of-messages), Discord blog, January 2017.
+- [How Discord Stores Trillions of Messages](https://discord.com/blog/how-discord-stores-trillions-of-messages), Discord blog, March 2023.
+
+**Documentation**
+- [PostgreSQL: JSON types](https://www.postgresql.org/docs/current/datatype-json.html), on `jsonb` and GIN indexing.
+- [Amazon DynamoDB transactions: how it works](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/transaction-apis.html).
+- [MongoDB: Transactions](https://www.mongodb.com/docs/manual/core/transactions/).
+
+[^1]: The same post puts Discord's read/write ratio at about 50/50, with highly random reads. So the predictable part is the query's shape (one channel, newest first).
+[^2]: The calculator divides by 1,024 and shows about 402 GB for the same number.
+[^3]: Discord itself stored messages in MongoDB first and moved them only after passing about 100 million, by which point its main query was clear.
