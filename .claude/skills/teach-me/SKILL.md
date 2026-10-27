@@ -35,6 +35,7 @@ Once the user signals readiness:
    - **Whenever the topic involves a flow of data** (a message/request moving between components over time - e.g. producer→broker→consumer, client→server→db, an event pipeline, a replication/election handoff), build the diagram the way `content/blogs/kafka/apache-kafka-concepts/index.md` does it: a **live `moving-diagram`** (animated boxes/wires/moves showing the data actually traveling) is required for that flow, not optional or a nice-to-have.
    - If the flow also has a clear ordered sequence of actor interactions (who calls/acks whom, in what order), pair it with a **Mermaid `sequenceDiagram`** placed immediately before the `moving-diagram` block - the sequence diagram gives the static step-by-step contract, the moving-diagram gives the animated feel of it happening. Not every flow needs the sequence diagram (skip it if there's no meaningful multi-actor ordering to show), but every data flow needs the live moving-diagram.
    - Set `mermaid: true` in frontmatter whenever a `{{< mermaid >}}` block is used.
+7. **Quality pass**: once the note is written and placed, run the `article-quality` skill (`.claude/skills/article-quality/SKILL.md`). It uses profile `short`, or `long` for a bundle. Score it, then rewrite until it reaches 85, for at most 3 passes. Then humanize it with `humanize-writing`. That skill always runs last.
 
 ### 4. Place it
 - Look at the existing folders under `content/blogs/` (`ai`, `architecture`, `basics`, `databases`, `java`, `kafka`, `kubernetes`, `spring`, `system-design`, `tools`, ...) and pick the best fit by content, not by guessing from the topic name alone.
@@ -54,7 +55,7 @@ Do this **before** or immediately after writing the file (either order is fine s
 3. `<topic-slug>` is the kebab-case topic, matching the note's filename/folder where reasonable.
 
 ### 6. Hand back
-Stop here. Report: the branch name, the file(s) created, which category they landed in, and any existing notes you linked to/from. Tell them to review the note, then `git add` / `git commit` / `git push` themselves when ready - **do not** run any of those three yourself, even if asked to "finish it up," unless the user explicitly says to commit or push in those words.
+Stop here. Report: the branch name, the file(s) created, which category they landed in, any existing notes you linked to/from, and the article-quality score for each pass (e.g. 58 → 76 → 88) along with any gaps left. Tell them to review the note, then `git add` / `git commit` / `git push` themselves when ready - **do not** run any of those three yourself, even if asked to "finish it up," unless the user explicitly says to commit or push in those words.
 
 ## Notes
 - If the user invokes `/teach-me` again while already mid-discussion on a topic, treat it as "continue" rather than restarting - stay in whichever phase you were in.
