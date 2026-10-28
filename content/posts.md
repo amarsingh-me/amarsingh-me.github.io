@@ -5,9 +5,10 @@ weight: 10
 showAuthor: false
 showWordCount: false
 showReadingTime: false
+showDate: false
 showTableOfContents: false
 compactIndex: true
-heroStyle: mountains
+heroStyle: night-scene
 ---
 ## Core Concepts
 ### [Solid Principle]({{<ref "./blogs/basics/Solid-Principle.md">}})
