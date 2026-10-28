@@ -7,6 +7,7 @@ showWordCount: false
 showReadingTime: false
 showTableOfContents: false
 compactIndex: true
+heroStyle: mountains
 ---
 ## Core Concepts
 ### [Solid Principle]({{<ref "./blogs/basics/Solid-Principle.md">}})
