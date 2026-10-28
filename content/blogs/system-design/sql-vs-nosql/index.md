@@ -169,49 +169,6 @@ The catch is the one from the animation. "Every message user 42 sent" names no c
 
 DynamoDB's global secondary index is the managed version. It's a second copy under another key, updated asynchronously, so it can lag a little.
 
-## Do the sums
-
-Compare the two costs: asking every partition, or keeping a second table.
-
-{{< back-of-envelope >}}
-{
-  "sections": [
-    {
-      "title": "A query that doesn't name the partition key",
-      "inputs": [
-        { "id": "partitions", "label": "Partitions (or nodes) the query must ask", "default": 50, "step": 1 },
-        { "id": "slowPct", "label": "Chance one partition answers slowly", "default": 1, "step": 0.5, "unit": "%" },
-        { "id": "qps", "label": "How often the query runs", "default": 200, "step": 10, "unit": "per second" }
-      ],
-      "outputs": [
-        { "id": "n", "label": "Partitions read per query", "formula": "Math.max(1, Math.floor(partitions))", "format": "number" },
-        { "id": "slowKeyed", "label": "Chance a keyed query is slow (%)", "formula": "Math.min(Math.max(slowPct, 0), 100)", "format": "number" },
-        { "id": "slowFanout", "label": "Chance this query is slow (%)", "formula": "(1 - Math.pow(1 - slowKeyed / 100, n)) * 100", "format": "number" },
-        { "id": "readsKeyed", "label": "Partition reads per second if it were keyed", "formula": "Math.max(0, qps)", "format": "number" },
-        { "id": "readsFanout", "label": "Partition reads per second as it is", "formula": "Math.max(0, qps) * n", "format": "number" }
-      ]
-    },
-    {
-      "title": "A second table instead",
-      "inputs": [
-        { "id": "writes", "label": "New messages", "default": 5000, "step": 100, "unit": "per second" },
-        { "id": "tables", "label": "Tables each message is written to", "default": 2, "step": 1 },
-        { "id": "msgBytes", "label": "Average stored message size", "default": 500, "step": 50, "unit": "bytes" }
-      ],
-      "outputs": [
-        { "id": "t", "label": "Tables", "formula": "Math.max(1, Math.floor(tables))", "format": "number" },
-        { "id": "writeRate", "label": "Writes per second across all tables", "formula": "Math.max(0, writes) * t", "format": "number" },
-        { "id": "storageDay", "label": "New storage per day, one replica", "formula": "Math.max(0, writes) * 86400 * Math.max(0, msgBytes) * t", "format": "bytes" }
-      ]
-    }
-  ]
-}
-{{< /back-of-envelope >}}
-
-*Figure 4: Asking every partition multiplies both the chance of a slow reply and the read load. A second table moves that cost onto writes and storage.*
-
-The model assumes partitions are slow independently with equal chance, the query waits for all of them, and each extra table stores a full copy. With the defaults, a keyed query is slow 1% of the time and the 50-partition query 1 − 0.99⁵⁰ ≈ 39.5% of the time, and 200 queries a second turn into 10,000 partition reads. Two tables at 5,000 messages a second mean 10,000 writes a second and 5,000 × 86,400 × 500 × 2 = 432 GB a day before replication.[^2]
-
 ## The lines blur
 
 The SQL vs NoSQL split is less sharp than it was ten years ago. Postgres stores JSON in `jsonb` columns and can index inside them with GIN (see [GIN indexes for JSONB](../../databases/postgres-gin-indexes-for-jsonb.md)), so a flexible schema doesn't require a document store. DynamoDB's `TransactWriteItems` commits up to 100 writes all-or-nothing, though each item costs two writes of capacity, one to prepare and one to commit. MongoDB runs multi-document transactions on replica sets from version 4.0 and on sharded clusters from 4.2.
@@ -237,7 +194,7 @@ To be fair to MongoDB, its aggregation pipeline has `$lookup` and `$group`, and 
 
 The other side has a strong argument. DynamoDB has no server to size and no schema migrations. Its latency stays flat as the table grows. Many apps really are key-value at heart: sessions, carts, profiles looked up by ID. If you'll need to spread writes across machines anyway, designing for a partition key on day one costs less than retrofitting sharding onto Postgres later.
 
-That holds when the access pattern is known and stable, as Discord's was. It breaks down while the product is still finding its shape, and every new report or filter becomes a new table and a backfill. My rule of thumb, and it's a judgment call rather than a measurement, is that a young product doesn't know its top five queries yet.[^3]
+That holds when the access pattern is known and stable, as Discord's was. It breaks down while the product is still finding its shape, and every new report or filter becomes a new table and a backfill. My rule of thumb, and it's a judgment call rather than a measurement, is that a young product doesn't know its top five queries yet.[^2]
 
 ## When each choice is the wrong call
 
@@ -263,5 +220,4 @@ In Postgres, `pg_stat_statements` ranks queries by total time and calls, so you 
 - [MongoDB: Transactions](https://www.mongodb.com/docs/manual/core/transactions/).
 
 [^1]: The same post puts Discord's read/write ratio at about 50/50, with highly random reads. So the predictable part is the query's shape (one channel, newest first).
-[^2]: The calculator divides by 1,024 and shows about 402 GB for the same number.
-[^3]: Discord itself stored messages in MongoDB first and moved them only after passing about 100 million, by which point its main query was clear.
+[^2]: Discord itself stored messages in MongoDB first and moved them only after passing about 100 million, by which point its main query was clear.
