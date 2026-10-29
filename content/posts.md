@@ -10,31 +10,38 @@ showTableOfContents: false
 compactIndex: true
 heroStyle: night-scene
 ---
-## Core Concepts
-### [Solid Principle]({{<ref "./blogs/basics/Solid-Principle.md">}})
+## Fundamentals
+### [SOLID Principles]({{<ref "./blogs/basics/solid-principle.md">}})
 <!--
 ### [OOPs Concepts]({{<ref "./blogs/spring/4-to-5.md">}})
 -->
+## Java
 ### [How can you choose right collection for your work in Java]({{<ref "./blogs/java/which-collection-use.md">}})
+### [Java Concurrency Roadmap]({{<ref "./blogs/java/concurrency/java-concurrency.md">}})
+### [WebSockets in Java: Threading, Scaling, and Virtual Threads]({{<ref "./blogs/java/websockets-threading-virtual-threads.md">}})
+## Spring
 ### [What Really Happens When You Add @SpringBootApplication?]({{<ref "./blogs/spring/spring-boot-application-annotation.md">}})
 ### [Spring Boot Core Concepts]({{<ref "./blogs/spring/core-concepts.md">}})
 ### [Spring WebFlux and Reactive Programming]({{<ref "./blogs/spring/webflux-reactive-programming.md">}})
-### [WebSockets in Java: Threading, Scaling, and Virtual Threads]({{<ref "./blogs/java/websockets-threading-virtual-threads.md">}})
 ## System Design
 ### [Back-of-the-Envelope Estimation]({{<ref "./blogs/system-design/back-of-the-envelope-estimation.md">}})
+### [Latency vs Throughput]({{<ref "./blogs/system-design/latency-vs-throughput/index.md">}})
+### [Vertical vs Horizontal Scaling]({{<ref "./blogs/system-design/vertical-vs-horizontal-scaling/index.md">}})
+### [How a URL Becomes a Webpage]({{<ref "./blogs/system-design/how-a-url-becomes-a-webpage/index.md">}})
+### [SQL vs NoSQL: Access Patterns, Not Hype]({{<ref "./blogs/system-design/sql-vs-nosql/index.md">}})
 ## Architecture
 ### [Domain-Driven Design Basics]({{<ref "./blogs/architecture/domain-driven-design-basics.md">}})
 ### [Microservices Architecture Fundamentals]({{<ref "./blogs/architecture/microservices-fundamentals.md">}})
+### [Myth: Microservices Make You Scale Better]({{<ref "./blogs/system-design/microservices-and-scale/index.md">}})
 ### [Event-Driven Architecture Patterns]({{<ref "./blogs/architecture/event-driven-patterns.md">}})
+### [CQRS: Command Query Responsibility Segregation]({{<ref "./blogs/architecture/cqrs.md">}})
 ### [Dependency Injection and Inversion of Control]({{<ref "./blogs/architecture/dependency-injection-and-ioc.md">}})
-## Kafka
-### [Apache Kafka Concepts]({{<ref "./blogs/kafka/apache-kafka-concepts/index.md">}})
-## Kubernetes
-### [Kubernetes Deployment Pipeline (Local Machine → Production)]({{<ref "./blogs/kubernetes/deployment-pipeline.md">}})
-## Databases
+## Data & Messaging
 ### [MySQL EXPLAIN ANALYZE vs EXPLAIN]({{<ref "./blogs/databases/mysql-explain-analyze.md">}})
 ### [Postgres GIN Indexes for JSONB Containment Queries]({{<ref "./blogs/databases/postgres-gin-indexes-for-jsonb.md">}})
-## Tooling
+### [Apache Kafka Concepts]({{<ref "./blogs/kafka/apache-kafka-concepts/index.md">}})
+## Infrastructure & Tooling
+### [Kubernetes Deployment Pipeline (Local Machine → Production)]({{<ref "./blogs/kubernetes/deployment-pipeline.md">}})
 ### [git worktree Lets You Check Out Multiple Branches at Once]({{<ref "./blogs/tools/git-worktree-basics.md">}})
 ## AI/LLM
 ### [AI-Assisted Development and Agentic Workflows]({{<ref "./blogs/ai/agentic-workflows.md">}})

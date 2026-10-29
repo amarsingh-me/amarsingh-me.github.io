@@ -26,25 +26,27 @@ Input from the caller: the path to a handoff JSON, and a mode, `pr` (default) or
 - Format (article-quality, profile `long`): put the main claim in **bold** in the first 3 paragraphs, add an italic `*Figure N: …*` caption under every block, include an `##` section on when it's the wrong call or how it fails, add at least one footnote, and finish with `## References` listing at least 3 sources you have actually read.
 - Interlink to existing notes where they genuinely relate, and add `[LinkedIn post](...)` only if the brief has a URL for it.
 - `draft: false`, `date` = today, with tags from the existing vocabulary.
+- Add the article to the hand-maintained index `content/posts.md` (Hugo doesn't generate it): insert `### [<title>]({{<ref "./blogs/<category>/<slug>/index.md">}})` as the last `###` line under the `##` section for the category (`basics` → `## Fundamentals`, `java` → `## Java`, `spring` → `## Spring`, `system-design` → `## System Design`, `architecture` → `## Architecture`, `databases`/`kafka` → `## Data & Messaging`, `kubernetes`/`tools` → `## Infrastructure & Tooling`, `ai` → `## AI/LLM`). Only if none of these fits, create a new section just before `## Changes In`. Skip this if the ref is already there, so a re-run doesn't duplicate it.
 
 ## 3. Check
 1. Quality: follow `.claude/skills/article-quality/SKILL.md` with profile `long`. Score the article (script plus rubric), then rewrite and rescore until it reaches 85, for at most 3 passes. Record the total at the start and after each pass, plus any gaps left. The same no-invented-facts rule applies: keep the brief's definitions and analogy.
 2. Humanize: score the article prose with `python3 .claude/skills/humanize-writing/scripts/ai_detect.py <file>` (JSON, `overall` = AI score). Shortcode JSON and code blocks are not prose: score a copy with them stripped. Target AI ≤ 30 (Human ≥ 70), max 3 rewrite passes, never changing facts.
 3. Re-check: run `python3 .claude/skills/article-quality/scripts/quality_check.py <file> --profile long` once more. If humanizing broke a check (a dropped caption or bold thesis), fix it directly. The final `quality_score` is that mechanical score plus the rubric score from step 1.
-4. Build: `hugo --gc --quiet --destination /tmp/longform-build-check` must exit 0 with no shortcode errors. Fix and rebuild until it does.
-5. Calculators: every `back-of-envelope` formula must be valid for every input it exposes. For example, don't apply a single-server queueing formula next to a "workers" input. State the model's assumptions in one sentence under the calculator, right after its `*Figure N: …*` caption, and check one set of default values by hand.
+4. Index: `grep -cF "./blogs/<category>/<slug>/index.md" content/posts.md` must print `1`. Fix `content/posts.md` until it does.
+5. Build: `hugo --gc --quiet --destination /tmp/longform-build-check` must exit 0 with no shortcode errors. Fix and rebuild until it does.
+6. Calculators: every `back-of-envelope` formula must be valid for every input it exposes. For example, don't apply a single-server queueing formula next to a "workers" input. State the model's assumptions in one sentence under the calculator, right after its `*Figure N: …*` caption, and check one set of default values by hand.
 
 ## 4. Git
 1. `git status --porcelain`. If anything is uncommitted that you didn't write, stop and report it. Exception: changes under `.claude/` (this agent's own setup) are expected. Leave them alone and never commit them.
 2. `git fetch origin main` then `git checkout -b post/day-<NN>-<slug> origin/main` (local `main` if offline). Do this before writing files, or carry your new files across. Either way, only your files go on the branch.
-3. `git add` only your bundle, then commit: `Add long-form article: <title>`.
-4. Mode `pr`: `git push -u origin <branch>`, then `gh pr create --base main --title "<title>" --body "<summary, word count, quality score per pass (e.g. 55 → 79 → 87) and remaining gaps, human score, blocks used, source: Day N LinkedIn post>"`.
+3. `git add` only your bundle and `content/posts.md`, then commit: `Add long-form article: <title>`.
+4. Mode `pr`: `git push -u origin <branch>`, then `gh pr create --base main --title "<title>" --body "<summary, word count, quality score per pass (e.g. 55 → 79 → 87) and remaining gaps, human score, blocks used, the index section it was added to, source: Day N LinkedIn post>"`.
    Mode `dry-run`: don't push and don't open a PR. Leave the local commit for review.
 5. Stay on the post branch when done. Don't switch back to `main`: Amar reviews the article on the local `hugo server` from this branch, then decides whether to publish.
 
 ## 5. Output
 End your final message with one fenced JSON block, nothing after it:
 ```json
-{"status":"ok","mode":"pr|dry-run","url":"https://amarsingh-me.github.io/blogs/<category>/<slug>/","file":"content/blogs/<category>/<slug>/index.md","branch":"post/day-NN-<slug>","commit":"<sha>","pr":"<url or null>","words":0,"quality_score":0,"quality_passes":[0,0],"quality_gaps":["<item: why>"],"human_score":0,"blocks":["moving-diagram x2","mermaid x1"],"notes":"<judgment calls, anything skipped>"}
+{"status":"ok","mode":"pr|dry-run","url":"https://amarsingh-me.github.io/blogs/<category>/<slug>/","file":"content/blogs/<category>/<slug>/index.md","branch":"post/day-NN-<slug>","commit":"<sha>","pr":"<url or null>","indexed":true,"words":0,"quality_score":0,"quality_passes":[0,0],"quality_gaps":["<item: why>"],"human_score":0,"blocks":["moving-diagram x2","mermaid x1"],"notes":"<judgment calls, anything skipped>"}
 ```
 On failure, use `"status":"error"` and put the reason in `notes`.
