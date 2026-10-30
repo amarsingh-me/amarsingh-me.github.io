@@ -12,7 +12,7 @@ categories: [System Design]
 mermaid: true
 ---
 
-An endpoint reads 50 keys from Redis, one `GET` at a time, and spends 25 ms doing it. Redis found each key in a few microseconds. The other 99% of the time went to the network: about half a millisecond per round trip inside a datacenter, paid 50 times in a row. **Count the round trips before you count anything else, because a network round trip costs thousands of RAM reads.** I call this the round-trip tax. You don't need exact digits to see it coming. Five rough numbers are enough: memory at ~100 ns, SSD at ~100 µs, a datacenter round trip at ~0.5 ms, a disk seek at ~10 ms, and California to Europe and back at ~150 ms. Your hardware will differ. Keep the order of magnitude.
+An endpoint reads 50 keys from Redis, one `GET` at a time, and spends 25 ms doing it. Redis found each key in a few microseconds. The other 99% of the time went to the network: about half a millisecond per round trip inside a datacenter, paid 50 times in a row. **Count the round trips before you count anything else, because a network round trip costs thousands of RAM reads.** I call this the **round-trip tax**. You don't need exact digits to see it coming. Five rough numbers are enough: memory at ~100 ns, SSD at ~100 µs, a datacenter round trip at ~0.5 ms, a disk seek at ~10 ms, and California to Europe and back at ~150 ms. 
 
 ## The terms
 
@@ -26,9 +26,9 @@ An endpoint reads 50 keys from Redis, one `GET` at a time, and spends 25 ms doin
 
 The numbers come from the list Jeff Dean made famous, which Peter Norvig also printed in "Teach Yourself Programming in Ten Years". His table has main memory at 100 ns, a disk seek at 8 ms and a packet from the US to Europe and back at 150 ms.
 
-## Five numbers on a human clock
+## A world where a RAM read takes 1 second
 
-Nanoseconds and milliseconds are both "fast" to a person, which is why the gap between them is easy to forget. So stretch time until a RAM read takes 1 second. An SSD read becomes 17 minutes. A datacenter round trip becomes almost an hour and a half (about 80 minutes). A disk seek eats a whole day, and California to Europe and back takes 17 days.
+Nanoseconds and milliseconds are both "fast" to a person, which is why the gap between them is easy to forget. Imagine a world where a RAM read takes 1 second. In that world, an SSD read takes 17 minutes, and a datacenter round trip takes almost an hour and a half (about 80 minutes). A disk seek eats a whole day, and California to Europe and back takes 17 days.
 
 {{< moving-diagram >}}
 {
@@ -96,29 +96,7 @@ The last row has a floor that no code can lower. Light in fibre covers about 200
 
 ## Where the 25 ms went
 
-Here is the hook again, with numbers. Each `GET` is one round trip of ~0.5 ms plus a few microseconds of work inside Redis. Fifty of them in sequence cost 50 × 0.5 ms = 25 ms of waiting and about 0.25 ms of work. On the human clock, the endpoint ran 50 of those 80-minute errands one after another.
-
-There are three ways to ask for the same 50 keys. They differ only in how many trips happen one after another.
-
-{{< mermaid >}}
-sequenceDiagram
-  participant A as App
-  participant R as Redis
-  loop 50 times, one after another
-    A->>R: GET key
-    R-->>A: value (0.5 ms trip)
-  end
-  A->>R: MGET key1 ... key50
-  R-->>A: 50 values (one 0.5 ms trip)
-  par 50 calls at once
-    A->>R: GET key1
-  and
-    A->>R: GET key50
-  end
-  R-->>A: replies (wait for the slowest)
-{{< /mermaid >}}
-
-*Figure 2: The loop pays the round-trip tax 50 times, MGET pays it once, and parallel calls pay it once but wait on the slowest reply.*
+Each `GET` is one round trip of ~0.5 ms plus a few microseconds of work inside Redis. Fifty of them in sequence cost 50 × 0.5 ms = 25 ms of waiting and about 0.25 ms of work. In the world where a RAM read takes 1 second, the endpoint runs 50 of those 80-minute errands one after another.
 
 {{< moving-diagram >}}
 {
@@ -158,9 +136,45 @@ sequenceDiagram
 }
 {{< /moving-diagram >}}
 
-*Figure 3: The dot spends almost all its time on the wires, not inside Redis. MGET makes the same 50 lookups in one trip.*
+*Figure 2: The dot spends almost all its time on the wires, not inside Redis. MGET makes the same 50 lookups in one trip.*
 
 The same shape shows up outside Redis. An ORM loads 50 orders, then runs one query per order to fetch its customer. That's the N+1 query problem: 51 database round trips where a `JOIN` or one `WHERE id IN (...)` query would make one. Chatty microservices do it too. Splitting a service turns an in-process call that took nanoseconds into a 0.5 ms round trip, as the [microservices and scale](../microservices-and-scale/) note explains. A request that hops through four services, each calling the next in sequence, pays the round-trip tax at every hop.
+
+## Four ways to pay less
+
+#### Batch
+One `MGET` or one pipeline is one trip, while 50 `GET`s are 50. The Redis pipelining docs make the same point with a slow link: at a 250 ms round trip, a server that handles 100k requests per second still lets one client finish only four requests per second. Pipelining also cuts the `read()` and `write()` syscalls Redis has to make, so it raises server throughput as well.
+
+#### Run them in parallel when you can't batch
+If the keys live behind different services, send the calls at once and wait for the slowest instead of the sum. Ten calls in flight turn 50 trips into five waves, about 2.5 ms.
+
+#### Keep hot data that can be slightly stale in local memory
+A read from the process's own heap is a RAM read, about 5,000 times cheaper than a datacenter round trip. Config, feature flags and product catalogues are the usual candidates.
+
+#### Serve users from nearby
+ For the 150 ms row, only distance helps. A CDN or a regional deployment moves the server closer. Faster code can't move the light.
+
+The first two fixes change how many trips happen one after another. Here are three ways to ask for the same 50 keys.
+
+{{< mermaid >}}
+sequenceDiagram
+  participant A as App
+  participant R as Redis
+  loop 50 times, one after another
+    A->>R: GET key
+    R-->>A: value (0.5 ms trip)
+  end
+  A->>R: MGET key1 ... key50
+  R-->>A: 50 values (one 0.5 ms trip)
+  par 50 calls at once
+    A->>R: GET key1
+  and
+    A->>R: GET key50
+  end
+  R-->>A: replies (wait for the slowest)
+{{< /mermaid >}}
+
+*Figure 3: The loop pays the round-trip tax 50 times, MGET pays it once, and parallel calls pay it once but wait on the slowest reply.*
 
 Put your own numbers into the calculator. Server time per key is a guess you should replace with a measurement.
 
@@ -192,16 +206,6 @@ Put your own numbers into the calculator. Server time per key is a guess you sho
 *Figure 4: With the defaults, the loop takes 25.25 ms, MGET 0.75 ms and ten-at-a-time parallel calls about 2.5 ms.*
 
 The model assumes every trip costs the same round trip, the server does the keys one after another, and parallel calls go out in full waves, with no tail latency or bandwidth limits. Check the defaults by hand: 50 × (0.5 + 0.005) = 25.25 ms for the loop, and 0.5 + 50 × 0.005 = 0.75 ms for one batch.
-
-## Four ways to pay less
-
-**Batch.** One `MGET` or one pipeline is one trip, while 50 `GET`s are 50. The Redis pipelining docs make the same point with a slow link: at a 250 ms round trip, a server that handles 100k requests per second still lets one client finish only four requests per second. Pipelining also cuts the `read()` and `write()` syscalls Redis has to make, so it raises server throughput as well.
-
-**Run them in parallel when you can't batch.** If the keys live behind different services, send the calls at once and wait for the slowest instead of the sum. Ten calls in flight turn 50 trips into five waves, about 2.5 ms.
-
-**Keep hot data that can be slightly stale in local memory.** A read from the process's own heap is a RAM read, about 5,000 times cheaper than a datacenter round trip. Config, feature flags and product catalogues are the usual candidates.
-
-**Serve users from nearby.** For the 150 ms row, only distance helps. A CDN or a regional deployment moves the server closer. Faster code can't move the light.
 
 ## The case for measuring instead of memorizing
 
