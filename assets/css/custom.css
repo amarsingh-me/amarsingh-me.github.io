@@ -412,8 +412,8 @@
 body:has(.night-scene) #site-footer {
   margin-bottom: clamp(80px, 60px + 2vw, 110px);
 }
-/* Liquid-glass pills: the header bar and the pinned copyright share one look. */
-body:has(.night-scene) .main-menu,
+/* Liquid-glass pills: the header bar (every page) and the pinned copyright share one look. */
+.main-menu,
 body:has(.night-scene) #site-footer > .flex > p:first-child {
   border-radius: 9999px;
   background: var(--glass-bg);
@@ -426,21 +426,21 @@ body:has(.night-scene) #site-footer > .flex > p:first-child {
 }
 
 /* Header pill floats a little below the top edge. */
-body:has(.night-scene) .main-menu {
+.main-menu {
   margin-top: 0.75rem;
   padding: 0.1rem 1.25rem;
 }
 /* The theme's menu rows are h-12 (48px); a slimmer row keeps the pill thin. */
-body:has(.night-scene) .main-menu .h-12 {
+.main-menu .h-12 {
   height: 2.25rem;
 }
 /* Run the pill end to end across the window, with the same 0.75rem gap as the copyright pill. */
-body:has(.night-scene) #menu-blur + div {
+#menu-blur + div {
   max-width: none;
   padding-inline: 0.75rem;
 }
 /* The theme's full-width scroll blur would show as a band behind the pill. */
-body:has(.night-scene) #menu-blur {
+#menu-blur {
   display: none;
 }
 
