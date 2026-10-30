@@ -22,6 +22,7 @@ heroStyle: night-scene
 ### [WebSockets in Java: Threading, Scaling, and Virtual Threads]({{<ref "./blogs/java/websockets-threading-virtual-threads.md">}})
 ## System Design
 ### [Back-of-the-Envelope Estimation]({{<ref "./blogs/system-design/back-of-the-envelope-estimation.md">}})
+### [5 Latency Numbers Every Engineer Should Know]({{<ref "./blogs/system-design/latency-numbers/index.md">}})
 ## Architecture
 ### [Domain-Driven Design Basics]({{<ref "./blogs/architecture/domain-driven-design-basics.md">}})
 ### [Microservices Architecture Fundamentals]({{<ref "./blogs/architecture/microservices-fundamentals.md">}})
