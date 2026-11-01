@@ -18,17 +18,29 @@ A new startup has three ways to ship its first product:
 - **Modular monolith**: still one deployable, but each module owns its own tables, and other modules reach it only through its public interface.
 - **Microservices**: each part deploys on its own and talks to the rest over the network.
 
-**At a new startup, start with one deployable and strict module lines, because your boundaries are guesses and moving one should cost a refactor, not a migration.** In year one the product changes every week, and code moves between modules a lot. Inside one deployable, moving a boundary is a refactor and one deploy. Across services, the same move needs an API change, a data migration and several deploys in a fixed order. I'll call that difference the boundary-move cost. Pull a service out when you can name the reason: very different resource needs, or a team with its own release schedule. Several teams on day one, working in a domain they already know, can justify a few services early. Whatever you pick, don't build a distributed monolith.
+A module boundary is the line that decides which module or service owns a piece of logic and its tables. **At a new startup, start with a modular monolith, because the lines between your modules or services are guesses, so moving one has to stay as cheap as a refactor.** If discounts move from orders to payments, one deployable needs a refactor and one deploy. Separate services need a new API, a data migration and a release from every caller. I'll call the price of that move the boundary-move cost. In year one you move these lines often, so you'd pay a high boundary-move cost again and again.
+
+The exception is several teams building a product they've built before: they know where the lines go, so the lines rarely move, and separate services let each team ship on its own.
 
 ## The desk you keep moving
 
-Think of moving a desk. Inside one house it's a ten-minute job. If every room were a separate building, the same move would need a van, a new address and a note to every visitor. In year one you move furniture a lot.
+Think of moving a desk. Inside one house it's a ten-minute job. If every room were a separate building, the same move would need a van, a new address and a note to every visitor.
 
-In code, the desk is a piece of logic and the rooms are modules. Say discounts start out in the orders module. A month later you learn that discounts depend on the payment method and refunds have to reverse them, so they belong in payments. Nobody got this wrong. Nobody knew it on day one. Fowler makes the same point in *MonolithFirst*: "even experienced architects working in familiar domains have great difficulty getting boundaries right at the beginning."[^dates]
+Each part of that picture has a counterpart in code:
 
-## One boundary move, two ways
+- **The desk** is a piece of logic plus its tables: discounts.
+- **The house** is one deployable, and **the rooms** are its modules: orders, payments, users.
+- **The ten-minute move** is a refactor: move the discount code and table into payments, run the tests, ship one deploy.
+- **A separate building** is a separate service with its own deploy and its own database.
+- **The van** is the network, which every call to discounts now crosses instead of making an in-process function call.
+- **The new address** is the new API endpoint that payments has to publish for discounts.
+- **The note to every visitor** is every caller of discounts changing its code to use that endpoint and shipping.
 
-In a modular monolith, moving discounts means moving the code, moving the table into payments' schema, fixing the callers your compiler or tests find, and shipping one deploy. Across services, the move has to keep running callers working the whole time, so it becomes an expand-and-contract sequence:
+In year one you move furniture a lot, because the product is still taking shape. Discounts start out in orders, then you learn that they depend on the payment method and that refunds must reverse them, so they belong in payments. Nobody could know that on day one. Fowler makes the same point in *MonolithFirst*: "even experienced architects working in familiar domains have great difficulty getting boundaries right at the beginning."[^dates]
+
+## Moving discounts, two ways
+
+In a modular monolith, moving discounts means moving the code and table into payments, fixing the callers your tests find, and shipping one deploy. Across services, running callers keep calling orders for discounts during the move, so they must keep working throughout. That makes it an expand-and-contract sequence:
 
 {{< mermaid >}}
 sequenceDiagram
@@ -44,7 +56,7 @@ sequenceDiagram
 
 *Figure 1: Across services the move has an order. Payments must ship the new API before orders can use it, and the cleanup waits until every caller has switched.*
 
-The animation runs the same move both ways. Watch the deploy counters on the right.
+The animation runs the move both ways; watch the deploy counters.
 
 {{< moving-diagram >}}
 {
@@ -110,21 +122,21 @@ The animation runs the same move both ways. Watch the deploy counters on the rig
 
 *Figure 2: The top row finishes with one deploy. The bottom row moves the same code but needs two deploys in order, plus the cleanup from Figure 1.*
 
-The network hop itself is cheap to draw and expensive to run. A datacenter round trip is about 0.5 ms, roughly 5,000 RAM reads, as the [latency numbers](../latency-numbers/) note explains. The bigger cost here is coordination, though. Two deploys in a fixed order, a backfill that has to be checked, and a period where both code paths are live.
+After the move, every discount call from orders crosses the network to payments: about 0.5 ms, roughly 5,000 RAM reads (see the [latency numbers](../latency-numbers/) note). The coordination costs more than the hop. Payments has to deploy before orders, someone has to check that the backfill copied every discount row, and both code paths stay live until the last caller has switched.
 
 ## What keeps a monolith modular
 
-One deployable only stays cheap to change if the module lines hold. The rule from the post does most of the work: **never let one module read another's tables.** If orders runs SQL against the payments tables, the tables are now a public API that nobody agreed to, and moving discounts later means finding every query that touches them.
+One deployable only stays cheap to change if no module reaches into another module's code or tables. The post's rule does most of the work: **never let one module read another's tables.** If orders runs SQL against the payments tables, those tables become a public API nobody agreed to, so moving discounts later means finding every query that touches them.
 
-Shopify's main Rails app is the best-known large case. By 2016 it had become fragile, with "new code having unexpected repercussions". The fix wasn't to split it into services. Kirsten Westeinde's 2019 post describes sorting about 6,000 Ruby classes into components named after business domains such as orders, shipping and billing, all still shipped as one app worked on by over a thousand developers. A CI tool called Wedge traced calls and flagged any that crossed into another component without going through its public interface.[^wedge] Shopify also open-sourced Packwerk, a gem that groups files into packages and flags references to another package's private constants.
+Shopify's Rails app is the best-known case. By 2016 it was fragile, with "new code having unexpected repercussions". Kirsten Westeinde's 2019 post describes how Shopify kept one app, worked on by over a thousand developers, and sorted about 6,000 Ruby classes into domain components such as orders, shipping and billing. A CI tool called Wedge traced calls and flagged, without blocking, any that entered another component without going through its public interface. Shopify later open-sourced Packwerk, a gem that flags references to another package's private constants.
 
-You don't need Shopify's tooling on day one. A folder per module, a public interface file for each, and a lint or architecture test that fails the build on a cross-module import or table read get you most of the way. Domain names from [domain-driven design](../../architecture/domain-driven-design-basics.md) make good module names, since they follow how the business talks.
+On day one, a folder per module, a public interface for each, and a test that fails the build on a cross-module import or table read get you most of the way. Name modules after business areas, as in [domain-driven design](../../architecture/domain-driven-design-basics.md), because those names follow how the business talks.
 
-A stateless monolith also scales out. Run more copies behind a load balancer, as the [vertical vs horizontal scaling](../vertical-vs-horizontal-scaling/) note shows. Splitting into services doesn't add capacity by itself. The [Day 4 note on microservices and scale](../microservices-and-scale/) covers that argument and the Prime Video case, so I won't repeat it here.
+Traffic doesn't force a split, because a stateless monolith [scales out](../vertical-vs-horizontal-scaling/) behind a load balancer; the [Day 4 note](../microservices-and-scale/) covers why.
 
 ## Putting a number on it
 
-The boundary-move cost only counts if you move boundaries often, so it's worth a rough estimate. The defaults below are my guesses for an early-stage team, not measurements. Replace them with your own.
+The boundary-move cost only adds up if you move logic between modules often. The defaults below are my guesses for an early-stage team, not measurements, so replace them with your own.
 
 {{< back-of-envelope >}}
 {
@@ -155,26 +167,26 @@ The boundary-move cost only counts if you move boundaries often, so it's worth a
 
 *Figure 3: With the defaults, services cost 120 days of boundary moves and 104 days of upkeep a year, against 24 and 13 for one deployable.*
 
-The model treats every move as costing the same, counts upkeep (pipelines, dashboards, alerts, on-call) as a flat number of hours per deployable, and ignores what services might save you. Check it by hand: 2 × 12 × 5 = 120, and 8 × 2 × 52 / 8 = 104, so the gap is 224 − 37 = 187 engineer-days, close to a full year of one engineer.[^days] Set moves per month to zero and most of that gap goes away. That's the honest reading of this calculator. One deployable wins on boundary-move cost exactly when boundaries are still moving.
+The model treats every move as costing the same, counts upkeep (pipelines, alerts, on-call) as flat hours per deployable, and ignores what services might save. Check it by hand: 2 × 12 × 5 = 120, and 8 × 2 × 52 / 8 = 104, so the gap is 224 − 37 = 187 engineer-days, most of one engineer's year. Set moves per month to zero and the gap drops from 187 to 91 days, all of it upkeep. So one deployable wins exactly while the lines between modules are still moving. Once they stop, services need another gain, like a team's own release schedule, to pay for their upkeep.
 
 ## The case for starting with services
 
-The strongest case for starting with services comes from Stefan Tilkov, in a reply published on Fowler's own site six days after *MonolithFirst*. His argument: it's "extremely hard to split up an existing monolith into separate pieces", because a monolith's parts end up sharing domain objects, persistence models and transactions. Starting a system is the best moment to draw hard lines, and a network boundary is a line nobody crosses by accident. He'd start with services when the team knows the domain well, for example when rebuilding an existing system, and when the system is big enough to pay for the overhead.
+The strongest case for starting with services comes from Stefan Tilkov, in a reply on Fowler's site six days after *MonolithFirst*. It's "extremely hard to split up an existing monolith into separate pieces", he argues, because its parts end up sharing domain objects, persistence models and transactions. So the start is the best moment to draw hard lines between parts, since no developer crosses a network boundary by accident. He'd start with services when the team knows the domain and the system is big enough to pay the overhead.
 
-That holds in the situations he names. A team rebuilding a product it has run for years isn't guessing at boundaries. Several teams on day one need separate release schedules from the start. For them, the boundary-move cost is low because the boundaries rarely move.
+That's the exception the post names, and it needs both conditions. You've built this kind of product before, so you know discounts belong in payments, so the lines between services rarely move and the boundary-move cost rarely gets paid. And you start with several teams, so each gains from deploying its own service on its own schedule, and that gain pays for the services' upkeep from day one. Without either condition the case fails: several teams on a new product pay the cross-service price for every move, and a single team on a known product gets no independent-deploy gain to cover the upkeep.
 
-It doesn't fit engineer #1 at a new startup. The domain isn't known yet, and Tilkov concedes the cost himself: with services, "refactoring in the large becomes much harder." His worry about entanglement is real, but it's an argument for enforced module lines, not for the network. Fowler's own evidence is anecdotal, and he says so. His pattern is that almost all the successful microservice stories he'd heard "started with a monolith that got too big and was broken up", and he adds that "the evidence is sparse". Treat both essays as experienced opinion, not data.
+It doesn't fit engineer #1 at a new startup, because there's one team and the product hasn't been built before. Tilkov concedes that with services "refactoring in the large becomes much harder." His worry that modules get entangled is real, but enforced module lines answer it inside one deployable, as Shopify's Wedge did, without a network hop. Fowler says his own evidence is anecdotal: almost all the successful microservice stories he'd heard "started with a monolith that got too big and was broken up", and "the evidence is sparse". Read both essays as experienced opinion.
 
 ## When one deployable is the wrong call
 
-One deployable stops being the right answer when you can name a reason it hurts:
+Split out a service when you can name one of these reasons:
 
-- **Very different resource needs.** A video transcoder wants GPUs and can wait in a queue. Checkout wants low latency and must stay up. In one process, a transcoding spike slows checkout.
-- **A team with its own release schedule.** If one team's broken test keeps holding up another team's deploy every week, separate pipelines fix exactly that.
+- **Very different resource needs.** A video transcoder wants GPUs and can wait; checkout wants low latency. In one process they share CPU and memory, so a transcoding spike slows checkout.
+- **A team with its own release schedule.** If one team's broken test holds up another team's deploy every week, separate pipelines fix that.
 
-The modular monolith also fails in a known way. The lines stop being enforced, someone adds one cross-module query "just for now", and in two years you have the fragile app Shopify described. You'll see it as changes that touch five modules for one feature.
+A modular monolith fails when the build stops enforcing module lines: one cross-module query added "just for now" becomes many, until one feature touches five modules and you have the fragile app Shopify described.
 
-The worst outcome is the distributed monolith: services that share a database and must deploy together. You pay the network costs of microservices and keep the coupling of a monolith.
+The worst outcome is the distributed monolith: services that share a database, so they must deploy together. You pay the network cost of microservices and keep the coupling of a monolith.
 
 {{< moving-diagram >}}
 {
@@ -213,16 +225,22 @@ The worst outcome is the distributed monolith: services that share a database an
 
 *Figure 4: The services deploy separately in theory, but the shared table ties them together. A change on one side breaks the other until both ship.*
 
-Database-per-service is the fix, and the [microservices fundamentals](../../architecture/microservices-fundamentals.md) note covers why. It's the same rule as in the modular monolith: a module's tables are private.
+The fix is a database per service, which keeps deploys independent, as the [microservices fundamentals](../../architecture/microservices-fundamentals.md) note explains. It's the modular monolith's rule again: a module's tables are private.
 
 ## What to measure
 
-You can find out which case you're in instead of arguing about it:
+Measure which case you're in:
 
-- **Boundary moves per month.** Count merged changes that move code or tables between modules. If it's near zero for a quarter, your boundaries have settled and a split costs less.
-- **Cross-module violations.** A lint or a Packwerk-style check gives you a count. It should be zero and stay there.
-- **Deploy blocking.** How often does one team's change hold up another team's release? This is the number that justifies a service.
-- **Lockstep deploys.** If two services keep shipping together, you have a distributed monolith, and merging them back may be cheaper than untangling the database.
+- **Boundary moves per month.** Count merged changes that move code or tables between modules, per module. If a module has had no moves in or out for a quarter, its boundary has stopped moving, so splitting it into a service now costs one expand-and-contract instead of one every month.
+- **Cross-module violations.** A lint or Packwerk-style check counts them. Keep it at zero, because each one is a hidden dependency a later move must untangle.
+- **Deploy blocking.** How often one team's change holds up another team's release. This number justifies a service.
+- **Lockstep deploys.** Two services that keep shipping together are a distributed monolith, so merging them may be cheaper than untangling the database.
+
+## My vote
+
+Build one deployable with a module per business area and no module reading another's tables, so moving logic like discounts stays a refactor and one deploy. When a module has had no moves for a quarter and you can name a reason, such as GPU-hungry work or a team with its own release schedule, pull it out as a service with its own API and database, and pay the expand-and-contract cost once.
+
+My vote: a modular monolith first. Split out a service once its boundary has stopped moving.
 
 ## References
 
@@ -235,6 +253,4 @@ You can find out which case you're in instead of arguing about it:
 - [Deconstructing the Monolith](https://shopify.engineering/deconstructing-monolith-designing-software-maximizes-developer-productivity), Kirsten Westeinde, Shopify Engineering, February 2019.
 - [Packwerk](https://github.com/Shopify/packwerk), Shopify's gem for enforcing package boundaries in Rails apps.
 
-[^dates]: *MonolithFirst* is from 3 June 2015. Fowler's *Microservice Premium*, three weeks earlier, makes the cost side of the argument: services bring automated deployment, monitoring, failure handling and eventual consistency, and "the majority of software systems should be built as a single monolithic application."
-[^wedge]: The 2019 post describes Wedge flagging violations and scoring each component, not blocking them. Making each component load only its declared dependencies was still a plan under research then.
-[^days]: 187 engineer-days is a lot of precision for a model built on guesses. Read it as "a large fraction of one engineer's year", not as a forecast.
+[^dates]: *MonolithFirst* is from 3 June 2015. Three weeks earlier, Fowler's *Microservice Premium* argued that "the majority of software systems should be built as a single monolithic application."
