@@ -134,41 +134,6 @@ On day one, a folder per module, a public interface for each, and a test that fa
 
 Traffic doesn't force a split, because a stateless monolith [scales out](../vertical-vs-horizontal-scaling/) behind a load balancer; the [Day 4 note](../microservices-and-scale/) covers why.
 
-## Putting a number on it
-
-The boundary-move cost only adds up if you move logic between modules often. The defaults below are my guesses for an early-stage team, not measurements, so replace them with your own.
-
-{{< back-of-envelope >}}
-{
-  "sections": [
-    {
-      "title": "Your guesses",
-      "inputs": [
-        { "id": "moves", "label": "Boundary moves per month", "default": 2, "step": 1 },
-        { "id": "daysMono", "label": "Engineer-days per move, one deployable", "default": 1, "step": 0.5 },
-        { "id": "daysSvc", "label": "Engineer-days per move, across services", "default": 5, "step": 0.5 },
-        { "id": "services", "label": "Number of services", "default": 8, "step": 1 },
-        { "id": "upkeepH", "label": "Upkeep per deployable (hours/week)", "default": 2, "step": 0.5, "unit": "h" }
-      ]
-    },
-    {
-      "title": "Engineer-days per year",
-      "outputs": [
-        { "id": "monoMoves", "label": "Moving boundaries, one deployable", "formula": "moves * 12 * daysMono", "format": "number" },
-        { "id": "svcMoves", "label": "Moving boundaries, services", "formula": "moves * 12 * daysSvc", "format": "number" },
-        { "id": "monoUpkeep", "label": "Upkeep, one deployable", "formula": "upkeepH * 52 / 8", "format": "number" },
-        { "id": "svcUpkeep", "label": "Upkeep, services", "formula": "services * upkeepH * 52 / 8", "format": "number" },
-        { "id": "gap", "label": "Extra days per year for services", "formula": "(moves * 12 * daysSvc + services * upkeepH * 52 / 8) - (moves * 12 * daysMono + upkeepH * 52 / 8)", "format": "number" }
-      ]
-    }
-  ]
-}
-{{< /back-of-envelope >}}
-
-*Figure 3: With the defaults, services cost 120 days of boundary moves and 104 days of upkeep a year, against 24 and 13 for one deployable.*
-
-The model treats every move as costing the same, counts upkeep (pipelines, alerts, on-call) as flat hours per deployable, and ignores what services might save. Check it by hand: 2 × 12 × 5 = 120, and 8 × 2 × 52 / 8 = 104, so the gap is 224 − 37 = 187 engineer-days, most of one engineer's year. Set moves per month to zero and the gap drops from 187 to 91 days, all of it upkeep. So one deployable wins exactly while the lines between modules are still moving. Once they stop, services need another gain, like a team's own release schedule, to pay for their upkeep.
-
 ## The case for starting with services
 
 The strongest case for starting with services comes from Stefan Tilkov, in a reply on Fowler's site six days after *MonolithFirst*. It's "extremely hard to split up an existing monolith into separate pieces", he argues, because its parts end up sharing domain objects, persistence models and transactions. So the start is the best moment to draw hard lines between parts, since no developer crosses a network boundary by accident. He'd start with services when the team knows the domain and the system is big enough to pay the overhead.
@@ -223,7 +188,7 @@ The worst outcome is the distributed monolith: services that share a database, s
 }
 {{< /moving-diagram >}}
 
-*Figure 4: The services deploy separately in theory, but the shared table ties them together. A change on one side breaks the other until both ship.*
+*Figure 3: The services deploy separately in theory, but the shared table ties them together. A change on one side breaks the other until both ship.*
 
 The fix is a database per service, which keeps deploys independent, as the [microservices fundamentals](../../architecture/microservices-fundamentals.md) note explains. It's the modular monolith's rule again: a module's tables are private.
 
