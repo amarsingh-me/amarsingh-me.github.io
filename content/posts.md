@@ -29,6 +29,8 @@ heroStyle: night-scene
 ### [Vertical vs Horizontal Scaling]({{<ref "./blogs/system-design/vertical-vs-horizontal-scaling/index.md">}})
 ### [How a URL Becomes a Webpage]({{<ref "./blogs/system-design/how-a-url-becomes-a-webpage/index.md">}})
 ### [SQL vs NoSQL: Access Patterns, Not Hype]({{<ref "./blogs/system-design/sql-vs-nosql/index.md">}})
+### [5 Latency Numbers Every Engineer Should Know]({{<ref "./blogs/system-design/latency-numbers/index.md">}})
+### [Monolith or Microservices for a New Startup?]({{<ref "./blogs/system-design/monolith-or-microservices/index.md">}})
 ## Architecture
 ### [Domain-Driven Design Basics]({{<ref "./blogs/architecture/domain-driven-design-basics.md">}})
 ### [Microservices Architecture Fundamentals]({{<ref "./blogs/architecture/microservices-fundamentals.md">}})
