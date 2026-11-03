@@ -41,6 +41,7 @@ Once the user signals readiness:
 - Look at the existing folders under `content/blogs/` (`ai`, `architecture`, `basics`, `databases`, `java`, `kafka`, `kubernetes`, `spring`, `system-design`, `tools`, ...) and pick the best fit by content, not by guessing from the topic name alone.
 - If nothing fits, create a new category folder - don't force an unrelated topic into an existing one.
 - Filename: kebab-case of the topic (`redis-pub-sub.md`), or `<topic>/index.md` if it's a bundle per point 3.3 above.
+- Add it to the hand-maintained index `content/posts.md` (Hugo doesn't generate it): insert `### [<title>]({{<ref "./blogs/<category>/<file>.md">}})` (or `.../<topic>/index.md` for a bundle) as the last `###` line under the matching `##` section. Current sections: `Fundamentals` (basics), `Java`, `Spring`, `System Design`, `Architecture`, `Data & Messaging` (databases, kafka), `Infrastructure & Tooling` (kubernetes, tools), `AI/LLM`. For a multi-note series, index only its hub note. Only if none of these fits, create a new section just before `## Changes In`. Don't add it twice.
 
 ### 5. Branch it
 Do this **before** or immediately after writing the file (either order is fine since uncommitted changes carry across a branch switch), but always:
@@ -55,7 +56,7 @@ Do this **before** or immediately after writing the file (either order is fine s
 3. `<topic-slug>` is the kebab-case topic, matching the note's filename/folder where reasonable.
 
 ### 6. Hand back
-Stop here. Report: the branch name, the file(s) created, which category they landed in, any existing notes you linked to/from, and the article-quality score for each pass (e.g. 58 → 76 → 88) along with any gaps left. Tell them to review the note, then `git add` / `git commit` / `git push` themselves when ready - **do not** run any of those three yourself, even if asked to "finish it up," unless the user explicitly says to commit or push in those words.
+Stop here. Report: the branch name, the file(s) created, which category they landed in, the `content/posts.md` section it was indexed under, any existing notes you linked to/from, and the article-quality score for each pass (e.g. 58 → 76 → 88) along with any gaps left. Tell them to review the note, then `git add` / `git commit` / `git push` themselves when ready - **do not** run any of those three yourself, even if asked to "finish it up," unless the user explicitly says to commit or push in those words.
 
 ## Notes
 - If the user invokes `/teach-me` again while already mid-discussion on a topic, treat it as "continue" rather than restarting - stay in whichever phase you were in.
