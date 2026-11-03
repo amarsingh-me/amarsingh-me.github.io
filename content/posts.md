@@ -12,9 +12,6 @@ heroStyle: night-scene
 ---
 ## Fundamentals
 ### [SOLID Principles]({{<ref "./blogs/basics/solid-principle.md">}})
-<!--
-### [OOPs Concepts]({{<ref "./blogs/spring/4-to-5.md">}})
--->
 ## Java
 ### [How can you choose right collection for your work in Java]({{<ref "./blogs/java/which-collection-use.md">}})
 ### [Java Concurrency Roadmap]({{<ref "./blogs/java/concurrency/java-concurrency.md">}})
@@ -31,6 +28,7 @@ heroStyle: night-scene
 ### [SQL vs NoSQL: Access Patterns, Not Hype]({{<ref "./blogs/system-design/sql-vs-nosql/index.md">}})
 ### [5 Latency Numbers Every Engineer Should Know]({{<ref "./blogs/system-design/latency-numbers/index.md">}})
 ### [Monolith or Microservices for a New Startup?]({{<ref "./blogs/system-design/monolith-or-microservices/index.md">}})
+### [Database Indexes: From 2 Seconds to 2 Milliseconds]({{<ref "./blogs/system-design/database-indexes/index.md">}})
 ## Architecture
 ### [Domain-Driven Design Basics]({{<ref "./blogs/architecture/domain-driven-design-basics.md">}})
 ### [Microservices Architecture Fundamentals]({{<ref "./blogs/architecture/microservices-fundamentals.md">}})
