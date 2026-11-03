@@ -18,13 +18,13 @@ An orders query runs in 5 ms on a laptop with 10,000 test rows. In production, w
 - **Index**: a sorted copy of one or more columns, kept separately from the table. Each entry points back to its row.
 - **B-tree index**: the default index type in Postgres and MySQL (InnoDB). It's a shallow, balanced tree you walk from the root down to your value, and even with millions of rows that's a handful of levels.
 
-**An index turns a cost that grows with the size of the table into one that grows with the depth of a tree, and every write pays for it.** I'll call that the index trade. Reads go from millions of rows to a few hops. Each insert and update now also writes to every index, and each index takes disk and memory. Index the columns your hot queries filter, join or sort on. Big read-heavy tables gain the most, and write-heavy log tables pay for every extra index. The 2 s and 2 ms figures here are illustrative, not a benchmark.
+**An index turns a cost that grows with the size of the table into one that grows with the depth of a tree, and every write pays for it.** I'll call that the index trade. Reads go from millions of rows to one page per tree level, a handful of page reads. The bill comes on writes. With three indexes, one new row means four writes. Each index also takes disk and memory. So add an index when the plan shows a full scan on a big, read-heavy table. On a write-heavy log table, wait until a real query needs one. The 2 s and 2 ms figures here are illustrative, not a benchmark.
 
 ## The book with no index
 
 Picture a 900-page book with no index. To find "replication" you flip every page. That's the scan. With an index, you go to R, read "replication: p. 412" and jump. The cost: every new edition rewrites those back pages, and the book gets thicker.
 
-The Postgres manual uses the same picture. Without an index, it says, the system "would have to scan the entire `test1` table, row by row, to find all matching entries". It's the reason the laptop lied. A scan's work grows with the row count, so a query that's fine on 10,000 rows does 2,000 times the work on 20 million. An index lookup barely notices the difference.
+The Postgres manual uses the same picture. Without an index, it says, the system "would have to scan the entire `test1` table, row by row, to find all matching entries". That's why the query looked fine on the laptop. A scan's work grows with the row count, so a query that's fine on 10,000 rows does 2,000 times the work on 20 million. An index lookup barely notices the difference.
 
 ## How a lookup walks the tree
 
@@ -111,7 +111,7 @@ The animation runs the same query twice. First with no index, then through the t
 }
 {{< /moving-diagram >}}
 
-*Figure 2: The scan lights every row, including the ones after 42, because without an index nothing tells it 42 appears only once. The lookup touches three tree nodes and one row.*
+*Figure 2: The scan lights every row, including the ones after 42, because the table isn't sorted by `user_id`, so another 42 could be anywhere further down. The lookup touches three tree nodes and one row.*
 
 Why so few hops? Each tree page holds many keys, "often hundreds" according to Markus Winand, so every level multiplies the reach by that number. He writes that "real world indexes with millions of records have a tree depth of four or five".[^depth] Each hop is a page read, and if the upper levels sit in memory, those hops cost RAM reads at ~100 ns rather than SSD reads at ~100 µs. The [latency numbers](../latency-numbers/) note covers why that gap is a factor of a thousand.
 
@@ -211,13 +211,13 @@ Now the other half of the index trade. An index is a second copy of the data, so
 
 Indexes on expressions cost a little more, because the database computes the expression for each new row. The Postgres docs call them "relatively expensive to maintain" and useful "when retrieval speed is more important than insertion and update speed."
 
-That's where the post's rule comes from. A big orders table that's read on every page load gains far more from an index than it pays. An append-only log table that takes thousands of inserts a second and is read once a day by a report pays the write cost all day for a gain it rarely uses.
+That's why the read/write mix decides whether an index pays off, not the table's size alone. A big orders table that's read on every page load gains far more from an index than it pays. An append-only log table that takes thousands of inserts a second and is read once a day by a report pays the write cost all day for a gain it rarely uses.
 
 ## The case for indexing everything up front
 
 The strongest opposing view goes like this. Disk is cheap. A missing index on a hot path is a production incident at 2 a.m.; an extra index is a small cost on writes that nobody notices. So index every foreign key and every column a query might filter on, and stop guessing.
 
-That holds for read-heavy tables with modest write rates, which describes a lot of business data. It's also right that a missing index usually hurts more than a spare one. Where it breaks is write-heavy tables and memory. Each index competes for the same cache as the table, and an unused index still costs on every insert. In Postgres it can also block heap-only tuple (HOT) updates, which the manual names as a reason to drop unused indexes. Indexing everything also misses the composite case below, where the right index depends on the query shape, not on the column list. I'd rather add indexes from the slow-query log and remove the ones that never get used.
+That holds for read-heavy tables with modest write rates, which describes a lot of business data. It's also right that a missing index usually hurts more than a spare one. Where it breaks is write-heavy tables and memory. Each index competes for the same cache as the table, and an unused index still costs on every insert. Postgres adds one more cost. An update that changes any indexed column can't be a heap-only tuple (HOT) update, so it has to add new entries to every index on the table, and each extra index makes that more likely. The manual names this as a reason to drop unused indexes. Indexing everything also misses the composite case below, where the right index depends on the query shape, not on the column list. I'd rather add indexes from the slow-query log and remove the ones that never get used.
 
 ## When the index doesn't help
 
@@ -228,7 +228,7 @@ An index exists and the plan still says `Seq Scan`. The usual reasons:
 - **Too many matches.** If a filter matches a large share of the table, like `status = 'shipped'`, jumping from index to table for each match costs more than reading the table in order, and the planner picks the scan. That's often the right call.
 - **A leading wildcard.** B-trees help `LIKE 'foo%'` but not `LIKE '%bar'`, per the Postgres docs. Searching inside a value needs a different index type, such as the [GIN index](../../databases/postgres-gin-indexes-for-jsonb.md) that makes JSONB containment queries fast.
 
-Indexes also follow the questions you ask. The [SQL vs NoSQL](../sql-vs-nosql/) note makes the same point about picking a database by access pattern.
+The right index depends on the queries you run, not on the schema. The [SQL vs NoSQL](../sql-vs-nosql/) note makes the same point about picking a database by access pattern.
 
 ## What to measure
 
@@ -238,6 +238,10 @@ Both sides of the index trade show up in numbers you already have.
 - **Unused indexes.** In Postgres, `pg_stat_user_indexes.idx_scan` counts scans per index. One that stays at zero for weeks is pure write cost.
 - **Write latency per table**, before and after adding an index. On a write-heavy table, that's the bill.
 - **Index size against memory.** If the indexes on a hot table no longer fit in RAM, lookups start paying SSD prices for the upper levels too.
+
+## The takeaway
+
+The index trade, once more: a lookup reads a few pages instead of the whole table, and every index adds a write to each change. Spend it where the reads are. Take candidates from the slow-query log or from `EXPLAIN` showing a `Seq Scan` on a big, read-heavy table. Put the column you filter by equality first in a composite index, and index the expression if the query wraps the column in a function. Then check `idx_scan` a few weeks later and drop the indexes nothing uses. On a write-heavy table, add one only when a real query needs it.
 
 ## References
 
