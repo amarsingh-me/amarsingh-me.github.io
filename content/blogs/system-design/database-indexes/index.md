@@ -129,38 +129,6 @@ Index Scan using orders_user_id_idx on orders
 
 `Seq Scan` is the full table scan. The [EXPLAIN ANALYZE](../../databases/mysql-explain-analyze.md) note shows how to compare the planner's estimates with the actual row counts.
 
-## Counting the pages
-
-The gap is easier to believe when you count pages. A database reads data in pages, not rows. Put in your own table:
-
-{{< back-of-envelope >}}
-{
-  "sections": [
-    {
-      "title": "Your table",
-      "inputs": [
-        { "id": "rows", "label": "Rows in the table", "default": 20000000, "step": 1000000 },
-        { "id": "fanout", "label": "Keys per index page", "default": 300, "step": 10 },
-        { "id": "rowsPerPage", "label": "Rows per table page", "default": 100, "step": 10 }
-      ]
-    },
-    {
-      "title": "Pages read for one WHERE user_id = 42",
-      "outputs": [
-        { "id": "depth", "label": "Tree levels (full pages)", "formula": "Math.max(1, Math.ceil(Math.log(Math.max(2, rows)) / Math.log(Math.max(2, fanout))))", "format": "number" },
-        { "id": "lookup", "label": "Index lookup: tree levels + 1 table page", "formula": "Math.max(1, Math.ceil(Math.log(Math.max(2, rows)) / Math.log(Math.max(2, fanout)))) + 1", "format": "number" },
-        { "id": "scan", "label": "Full table scan: every table page", "formula": "Math.ceil(rows / Math.max(1, rowsPerPage))", "format": "number" },
-        { "id": "ratio", "label": "Scan pages per lookup page", "formula": "Math.ceil(rows / Math.max(1, rowsPerPage)) / (Math.max(1, Math.ceil(Math.log(Math.max(2, rows)) / Math.log(Math.max(2, fanout)))) + 1)", "format": "number" }
-      ]
-    }
-  ]
-}
-{{< /back-of-envelope >}}
-
-*Figure 3: With the defaults, the lookup reads 4 pages and the scan reads 200,000. Multiply the rows by ten and the scan grows tenfold while the lookup stays at 4 or 5.*
-
-The model assumes completely full index pages, one matching row, and a scan that reads every table page once; the defaults for keys and rows per page are rough guesses, so use your own. Check it by hand: log(20,000,000) / log(300) ≈ 16.8 / 5.7 ≈ 2.95, so 3 levels plus 1 table page is 4, and 20,000,000 / 100 = 200,000 scan pages. Pages are rarely full, which is why real trees come out a level or two deeper.
-
 ## What every write pays
 
 Now the other half of the index trade. An index is a second copy of the data, sorted differently, and the database has to keep it in step with the table. The Postgres manual says it plainly: keeping indexes synchronized "adds overhead to data manipulation operations", and "indexes that are seldom or never used in queries should be removed."
@@ -207,7 +175,7 @@ Now the other half of the index trade. An index is a second copy of the data, so
 }
 {{< /moving-diagram >}}
 
-*Figure 4: The table write is one of four. Every index on the table adds another sorted insert, plus the disk and memory to hold it.*
+*Figure 3: The table write is one of four. Every index on the table adds another sorted insert, plus the disk and memory to hold it.*
 
 Indexes on expressions cost a little more, because the database computes the expression for each new row. The Postgres docs call them "relatively expensive to maintain" and useful "when retrieval speed is more important than insertion and update speed."
 
