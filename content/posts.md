@@ -29,6 +29,7 @@ heroStyle: night-scene
 ### [5 Latency Numbers Every Engineer Should Know]({{<ref "./blogs/system-design/latency-numbers/index.md">}})
 ### [Monolith or Microservices for a New Startup?]({{<ref "./blogs/system-design/monolith-or-microservices/index.md">}})
 ### [Database Indexes: From 2 Seconds to 2 Milliseconds]({{<ref "./blogs/system-design/database-indexes/index.md">}})
+### [Database Replication: Why the Replica Lost Your Order]({{<ref "./blogs/system-design/database-replication/index.md">}})
 ## Architecture
 ### [Domain-Driven Design Basics]({{<ref "./blogs/architecture/domain-driven-design-basics.md">}})
 ### [Microservices Architecture Fundamentals]({{<ref "./blogs/architecture/microservices-fundamentals.md">}})
