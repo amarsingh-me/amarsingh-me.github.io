@@ -12,7 +12,7 @@ categories: [System Design]
 mermaid: true
 ---
 
-You add a read replica to take load off the database. A user places an order, the page refreshes, and the order is gone. It isn't lost: the write landed on the leader, and the refresh read a replica that hadn't copied it yet. Four terms explain it:
+You add a read replica to take load off the database. A user places an order, the page refreshes, and the order is gone. It isn't lost: the write landed on the leader, and the refresh read a replica that has not copied the data yet. Four terms explain it:
 
 - **Leader-follower replication**: one server, the leader (also called primary), takes every write. Followers (replicas) copy the leader's change log and replay it in order. Postgres calls the log the WAL (streaming replication); MySQL uses the binlog.
 - **Asynchronous replication**: the default in Postgres and MySQL. The leader commits and answers the user before any follower has the change.
@@ -23,7 +23,7 @@ You add a read replica to take load off the database. A user places an order, th
 
 ## The whiteboard next door
 
-A teacher writes on the main whiteboard while helpers copy each line onto boards in other rooms. You add your name and walk next door. It isn't there yet. Main board = leader, other boards = followers replaying the change log, the wait = replication lag.
+A teacher writes on the main whiteboard while helpers copy each line onto boards in other rooms. You add your name and walk next door. It isn't there yet. If you take the main board as the leader, the boards in the other rooms are the followers. The helpers copying it line by line are those followers replaying the change log, in the same order the teacher wrote it. The time between writing your name on the main board and seeing it next door is the replication lag.
 
 The Postgres manual describes the same gap. With streaming replication there is "a small delay between committing a transaction in the primary and the changes becoming visible in the standby", "typically under one second assuming the standby is powerful enough to keep up with the load". Under a second sounds harmless, but the redirect after a form post comes back in milliseconds.
 
@@ -119,39 +119,6 @@ Staleness routing starts with one question for each read: how old may this answe
 
 The leader-read window has to be longer than your worst normal lag, so measure lag first. A tighter Postgres option is to remember the WAL position of the user's write and only use a replica whose `pg_last_wal_replay_lsn()` has passed it. That's more code, so I'd start with the timer.
 
-The calculator covers both costs: replicas needed once some reads go to the leader, and what synchronous replication adds to each write.
-
-{{< back-of-envelope >}}
-{
-  "sections": [
-    {
-      "title": "Your traffic",
-      "inputs": [
-        { "id": "reads", "label": "Reads per second", "default": 20000, "step": 1000 },
-        { "id": "leaderShare", "label": "Reads that must go to the leader", "unit": "%", "default": 5, "step": 1 },
-        { "id": "replicaCap", "label": "Reads one replica can serve", "unit": "per s", "default": 5000, "step": 500 },
-        { "id": "commitMs", "label": "Local commit on the leader", "unit": "ms", "default": 2, "step": 0.5 },
-        { "id": "rttMs", "label": "Round trip to the synchronous follower", "unit": "ms", "default": 0.5, "step": 0.5 }
-      ]
-    },
-    {
-      "title": "What it costs",
-      "outputs": [
-        { "id": "leaderReads", "label": "Reads on the leader (per s)", "formula": "reads * Math.min(100, Math.max(0, leaderShare)) / 100", "format": "number" },
-        { "id": "replicaReads", "label": "Reads on replicas (per s)", "formula": "reads * (1 - Math.min(100, Math.max(0, leaderShare)) / 100)", "format": "number" },
-        { "id": "replicas", "label": "Replicas needed", "formula": "Math.ceil(reads * (1 - Math.min(100, Math.max(0, leaderShare)) / 100) / Math.max(1, replicaCap))", "format": "number" },
-        { "id": "asyncMs", "label": "Async write latency (ms)", "formula": "commitMs", "format": "number" },
-        { "id": "syncMs", "label": "Sync write latency, at least (ms)", "formula": "commitMs + rttMs", "format": "number" }
-      ]
-    }
-  ]
-}
-{{< /back-of-envelope >}}
-
-*Figure 3: Pinning 5% of reads to the leader costs it 1,000 reads a second. Set the round trip to 150 and watch a synchronous write go from 2.5 ms to 152 ms.*
-
-The model splits reads evenly across replicas and counts only the round trip as sync's extra cost (Postgres: "the minimum wait time is the round-trip time between primary and standby"), so the sync figure is a floor. By hand with the defaults: 20,000 × 5% = 1,000 leader reads, 19,000 / 5,000 = 3.8, so 4 replicas, and 2 + 0.5 = 2.5 ms per synchronous write. A follower in another region (~150 ms round trip, per the [latency numbers](../latency-numbers/) note) makes each write wait ~152 ms.
-
 ## Failover: where async lag turns into data loss
 
 Stale reads are annoying; failover is where async lag costs data. When the leader dies and a follower is promoted, writes the old leader acknowledged but hadn't shipped aren't on the new one. Postgres puts it plainly: "The amount of data loss is proportional to the replication delay at the time of failover."
@@ -199,7 +166,7 @@ Stale reads are annoying; failover is where async lag costs data. When the leade
 }
 {{< /moving-diagram >}}
 
-*Figure 4: The orders were acknowledged, so the users think they're saved. After promotion they exist only on the old leader, and someone has to merge them back by hand.*
+*Figure 3: The orders were acknowledged, so the users think they're saved. After promotion they exist only on the old leader, and someone has to merge them back by hand.*
 
 That's what happened to GitHub on 21 October 2018. Connectivity between a network hub and their primary US East Coast data center was lost and "restored in 43 seconds". In that window their failover tool, orchestrator, had started moving MySQL leadership, and the West Coast nodes began "failing over clusters to direct writes to the US West Coast data center". The East Coast leaders held a short stretch of writes that "had not been replicated to the US West Coast facility". GitHub chose to "prioritize data integrity over site usability and time to recovery", and the incident "resulted in degraded service for 24 hours and 11 minutes."
 
@@ -248,5 +215,5 @@ A replica shows the database as it was a moment ago, and staleness routing plans
 - [Replication](https://dev.mysql.com/doc/refman/8.4/en/replication.html), MySQL 8.4 manual. "Replication is asynchronous by default."
 - [SHOW REPLICA STATUS Statement](https://dev.mysql.com/doc/refman/8.4/en/show-replica-status.html), MySQL 8.4 manual: what `Seconds_Behind_Source` measures and when it misleads.
 
-[^lag]: The 0.9 s in the animation and the default calculator values are illustrative, not measured. Use your own lag and capacity numbers.
+[^lag]: The 0.9 s in the animation is illustrative, not measured. Use your own lag numbers.
 [^apply]: Postgres has a stricter level, `synchronous_commit = remote_apply`, which waits for the standby to apply the change. The manual's description of `replay_lag` mentions it as the delay that level adds to each commit.
