@@ -12,7 +12,11 @@ categories: [System Design]
 mermaid: true
 ---
 
-You add a read replica to take load off the database. A user places an order, the page refreshes, and the order is gone. It isn't lost: the write landed on the leader, and the refresh read a replica that has not copied the data yet. Four terms explain it:
+You add a read replica to take load off the database. A user places an order, the page refreshes, and the order is gone.
+
+Where did it go? Was it deleted? Did the server crash? You check the logs and there's no crash, no error, nothing. So what just happened?
+
+It isn't lost: the write landed on the leader, and the refresh read a replica that has not copied the data yet. Four terms explain it:
 
 - **Leader-follower replication**: one server, the leader (also called primary), takes every write. Followers (replicas) copy the leader's change log and replay it in order. Postgres calls the log the WAL (streaming replication); MySQL uses the binlog.
 - **Asynchronous replication**: the default in Postgres and MySQL. The leader commits and answers the user before any follower has the change.
