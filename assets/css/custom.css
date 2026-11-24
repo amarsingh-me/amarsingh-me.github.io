@@ -434,9 +434,10 @@ body:has(.night-scene) #site-footer > .flex > p:first-child {
 .main-menu .h-12 {
   height: 2.25rem;
 }
-/* Run the pill end to end across the window, with the same 0.75rem gap as the copyright pill. */
+/* Keep the pill to the theme's page width (max-w-7xl, 80rem) so it lines up with the content;
+   narrower windows leave the same 0.75rem gap as the copyright pill. */
 #menu-blur + div {
-  max-width: none;
+  max-width: calc(80rem + 2 * 0.75rem);
   padding-inline: 0.75rem;
 }
 /* The theme's full-width scroll blur would show as a band behind the pill. */
